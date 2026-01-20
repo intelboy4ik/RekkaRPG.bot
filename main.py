@@ -67,7 +67,7 @@ def forward_message(message):
         forward_waiting.pop(message.from_user.id, None)
 
 
-# Profile and stats commands
+# Profile and chars commands
 @bot.message_handler(commands=["createprofile"])
 def create_profile(message):
     if not users.get(User.user_id == message.from_user.id):
@@ -80,14 +80,14 @@ def create_profile(message):
                 "posts": 0,
                 "duel_wins": 0
             },
-            "stats": {
+            "chars": {
                 "HP": 0,
                 "DEF": 0,
                 "ATK": 0,
                 "CRIT.DMG": 0
             }
         })
-        bot.reply_to(message, "Профиль успешно создан!\n\nИспользуйте команду /rollstats чтобы сгенерировать ваши характеристики или /myprofile чтобы просмотреть его.")
+        bot.reply_to(message, "Профиль успешно создан!\n\nИспользуйте команду /rollchars чтобы сгенерировать ваши характеристики или /myprofile чтобы просмотреть его.")
     else:
         bot.reply_to(message, "У вас уже есть профиль!")
 
@@ -97,15 +97,15 @@ def my_profile(message):
         bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
         return
     user = users.get(User.user_id == message.from_user.id)
-    stats = user["stats"]
-    if user["stats"]["HP"] != 0:
+    chars = user["chars"]
+    if user["chars"]["HP"] != 0:
         bot.reply_to(
             message,
-            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {stats['HP']}\n🛡️ Защита: {stats["DEF"]}\n🗡️ Атака: {stats['ATK']}\n💥 Крит. урон: {stats['CRIT.DMG']}%"
+            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {chars['HP']}\n🛡️ Защита: {chars["DEF"]}\n🗡️ Атака: {chars['ATK']}\n💥 Крит. урон: {chars['CRIT.DMG']}%"
         )
         return
     bot.reply_to(
-        message, f"Игрок | {user['username']}\n\nХарактеристики ещё не заданы. Воспользуйтесь командой /rollstats чтобы их сгенерировать."
+        message, f"Игрок | {user['username']}\n\nХарактеристики ещё не заданы. Воспользуйтесь командой /rollchars чтобы их сгенерировать."
     )
 
 @bot.message_handler(commands=["viewid"])
@@ -143,18 +143,18 @@ def delete_profile(message):
 
 
 # Roll commands
-@bot.message_handler(commands=['rollstats'])
-def generate_stats(message):
+@bot.message_handler(commands=['rollchars'])
+def generate_chars(message):
     user = users.get(User.user_id == message.from_user.id)
     if not user:
         bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
         return
 
-    if user["stats"]["HP"] != 0:
+    if user["chars"]["HP"] != 0:
         bot.reply_to(message, "Вы уже сгенерировали свои характеристики!")
         return
 
-    raw_stats = {
+    raw_chars = {
         "HP": sum(sorted([random.randint(300, 1500) for _ in range(4)])[1:])+800,
         "DEF": sum(sorted([random.randint(10, 15) for _ in range(4)])[1:])+30,
         "ATK": sum(sorted([random.randint(75, 175) for _ in range(4)])[1:])+200,
@@ -162,23 +162,23 @@ def generate_stats(message):
     }
 
 
-    final_stats = {
-        "❤️‍🩹 Здоровье": raw_stats["HP"],
-        "🛡️ Защита": raw_stats["DEF"],
-        "🗡️ Атака": raw_stats["ATK"],
-        "💥 Крит. урон": f"{raw_stats['CRIT.DMG']}%",
+    final_chars = {
+        "❤️‍🩹 Здоровье": raw_chars["HP"],
+        "🛡️ Защита": raw_chars["DEF"],
+        "🗡️ Атака": raw_chars["ATK"],
+        "💥 Крит. урон": f"{raw_chars['CRIT.DMG']}%",
     }
 
-    users.update({"stats": {
-        "HP": raw_stats["HP"],
-        "DEF": raw_stats["DEF"],
-        "ATK": raw_stats["ATK"],
-        "CRIT.DMG": raw_stats['CRIT.DMG']
+    users.update({"chars": {
+        "HP": raw_chars["HP"],
+        "DEF": raw_chars["DEF"],
+        "ATK": raw_chars["ATK"],
+        "CRIT.DMG": raw_chars['CRIT.DMG']
         }
     }, User.user_id == message.from_user.id)
 
     bot.send_dice(message.chat.id, message_thread_id=message.message_thread_id)
-    bot.reply_to(message, "Полученные характеристики:\n" + "\n".join([f"{key}: {value}" for key, value in final_stats.items()]))
+    bot.reply_to(message, "Полученные характеристики:\n" + "\n".join([f"{key}: {value}" for key, value in final_chars.items()]))
 
 @bot.message_handler(commands=['rolldice'])
 def rolldice(message):
@@ -202,27 +202,27 @@ def fight(message):
 
     base_defense = random.randint(35, 60)
 
-    final_defense = user['stats']['DEF'] + base_defense
+    final_defense = user['chars']['DEF'] + base_defense
 
     check_crit = random.randint(1, 25)
 
     match check_crit:
         case 18 | 19 | 20 | 21 | 22:
-            damage = (damage_multiplier * user["stats"]["ATK"]) * (user["stats"]["CRIT.DMG"] / 100) - final_defense
+            damage = (damage_multiplier * user["chars"]["ATK"]) * (user["chars"]["CRIT.DMG"] / 100) - final_defense
             if duel["initiator"]["ID"] == user["user_id"]:
                 duel["duelist"]["HP"] -= int(damage)
             else:
                 duel["initiator"]["HP"] -= int(damage)
             bot.reply_to(message, f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!")
         case 23 | 24 | 25:
-            damage = (damage_multiplier * user["stats"]["ATK"]) * (user["stats"]["CRIT.DMG"] / 100) * 2 - base_defense
+            damage = (damage_multiplier * user["chars"]["ATK"]) * (user["chars"]["CRIT.DMG"] / 100) * 2 - base_defense
             if duel["initiator"]["ID"] == user["user_id"]:
                  duel["duelist"]["HP"] -= int(damage)
             else:
                  duel["initiator"]["HP"] -= int(damage)
             bot.reply_to(message, f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!")
         case _:
-            damage = (damage_multiplier * user["stats"]["ATK"]) - base_defense
+            damage = (damage_multiplier * user["chars"]["ATK"]) - base_defense
             if duel["initiator"]["ID"] == user["user_id"]:
                 duel["duelist"]["HP"] -= int(damage)
             else:
@@ -257,14 +257,14 @@ def fight(message):
             lv_atk_boost = random.randint(15, 50)
             lv_crit_boost = random.randint(1, 5)
 
-            updated_stats = {
-                "HP": user["stats"]["HP"] + lv_hp_boost,
-                "DEF": user["stats"]["DEF"] + lv_defense_boost,
-                "ATK": user["stats"]["ATK"] + lv_atk_boost,
-                "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
+            updated_chars = {
+                "HP": user["chars"]["HP"] + lv_hp_boost,
+                "DEF": user["chars"]["DEF"] + lv_defense_boost,
+                "ATK": user["chars"]["ATK"] + lv_atk_boost,
+                "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
             }
 
-            users.update({"stats": updated_stats}, User.user_id == winner_user["user_id"])
+            users.update({"chars": updated_chars}, User.user_id == winner_user["user_id"])
 
         bot.send_message(message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}", message_thread_id=message.message_thread_id)
         active_duels.pop(message.chat.id, None)
@@ -282,7 +282,7 @@ def initiate_duel(message):
 
     initiator = users.get(User.user_id == message.from_user.id)
     duelist = users.get(User.username == parts[1])
-    if not duelist or duelist["stats"]["HP"] <= 0:
+    if not duelist or duelist["chars"]["HP"] <= 0:
         bot.reply_to(message, "Игрок не найден либо не готов к бою.")
         return
     if initiator["user_id"] == duelist["user_id"]:
@@ -293,11 +293,11 @@ def initiate_duel(message):
         "is_active": True,
         "initiator": {
             "ID": initiator["user_id"],
-            "HP": initiator["stats"]["HP"]
+            "HP": initiator["chars"]["HP"]
         },
         "duelist": {
             "ID": duelist["user_id"],
-            "HP": duelist["stats"]["HP"]
+            "HP": duelist["chars"]["HP"]
         }
     }
 
@@ -326,9 +326,9 @@ def duel_callback_handler(call):
         duelist = users.get(User.user_id == duel["duelist"]["ID"])
         bot.send_message(
             call.message.chat.id,
-            f"{duelist['role']}\n❤️‍🩹 {duelist['stats']['HP']} • 🗡️ {duelist['stats']['ATK']} • 💥 {duelist['stats']['CRIT.DMG']}%"
+            f"{duelist['role']}\n❤️‍🩹 {duelist['chars']['HP']} • 🗡️ {duelist['chars']['ATK']} • 💥 {duelist['chars']['CRIT.DMG']}%"
             f"\n\nДля начала боя используйте команду /fight\n\n"
-            f"{initiator['role']}\n❤️‍🩹 {initiator['stats']['HP']} • 🗡️ {initiator['stats']['ATK']} • 💥 {initiator['stats']['CRIT.DMG']}%",
+            f"{initiator['role']}\n❤️‍🩹 {initiator['chars']['HP']} • 🗡️ {initiator['chars']['ATK']} • 💥 {initiator['chars']['CRIT.DMG']}%",
             message_thread_id = call.message.message_thread_id
         )
     else:
@@ -386,14 +386,14 @@ def post_counter(message):
             lv_atk_boost = random.randint(15, 50)
             lv_crit_boost = random.randint(1, 5)
 
-            updated_stats = {
-                "HP": user["stats"]["HP"] + lv_hp_boost,
-                "DEF": user["stats"]["DEF"] + lv_defense_boost,
-                "ATK": user["stats"]["ATK"] + lv_atk_boost,
-                "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
+            updated_chars = {
+                "HP": user["chars"]["HP"] + lv_hp_boost,
+                "DEF": user["chars"]["DEF"] + lv_defense_boost,
+                "ATK": user["chars"]["ATK"] + lv_atk_boost,
+                "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
             }
 
-            users.update({"stats": updated_stats}, User.user_id == user["user_id"])
+            users.update({"chars": updated_chars}, User.user_id == user["user_id"])
 
 
 
