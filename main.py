@@ -244,6 +244,19 @@ def fight(message):
             User.user_id == winner_user["user_id"]
         )
 
+        if winner_user["internot"]["lv"] % 5 == 0:
+            lv_hp_boost = random.randint(75, 125)
+            lv_atk_boost = random.randint(15, 50)
+            lv_crit_boost = random.randint(1, 5)
+
+            updated_stats = {
+                "HP": user["stats"]["HP"] + lv_hp_boost,
+                "ATK": user["stats"]["ATK"] + lv_atk_boost,
+                "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
+            }
+
+            users.update({"stats": updated_stats}, User.user_id == winner_user["user_id"])
+
         bot.send_message(message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}", message_thread_id=message.message_thread_id)
         active_duels.pop(message.chat.id, None)
 
@@ -357,6 +370,19 @@ def post_counter(message):
             f"Поздравляем! {user['username']} получил повышение уровня Интернота за активность в ролевом!",
             message_thread_id=418
         )
+
+        if new_lv % 5 == 0:
+            lv_hp_boost = random.randint(75, 125)
+            lv_atk_boost = random.randint(15, 50)
+            lv_crit_boost = random.randint(1, 5)
+
+            updated_stats = {
+                "HP": user["stats"]["HP"] + lv_hp_boost,
+                "ATK": user["stats"]["ATK"] + lv_atk_boost,
+                "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
+            }
+
+            users.update({"stats": updated_stats}, User.user_id == user["user_id"])
 
 
 
