@@ -1,4 +1,9 @@
 import random
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import telebot
 from telebot import types
 
@@ -23,7 +28,8 @@ signal.signal(signal.SIGINT, graceful_exit)
 signal.signal(signal.SIGTERM, graceful_exit)
 
 # Initialize bot
-bot = telebot.TeleBot(token="8591838447:AAEpnaWfoFIkKUDocd5Y-sBMseKQufs6FXY")
+token = os.getenv("TOKEN")
+bot = telebot.TeleBot(token=token)
 
 #Tech waiting dict
 forward_waiting = {}
@@ -69,7 +75,11 @@ def create_profile(message):
             "user_id": message.from_user.id,
             "username": f"@{message.from_user.username}",
             "role": "не задана",
-            "internot_lv": 1,
+            "internot": {
+                "lv": 1,
+                "posts": 0,
+                "duel_wins": 0
+            },
             "stats": {
                 "HP": 0,
                 "ATK": 0,
@@ -90,7 +100,7 @@ def my_profile(message):
     if user["stats"]["HP"] != 0:
         bot.reply_to(
             message,
-            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot_lv"]}\n\n❤️‍🩹 Здоровье: {stats['HP']}\n🗡️ Атака: {stats['ATK']}\n💥 Крит. урон: {stats['CRIT.DMG']}%"
+            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {stats['HP']}\n🗡️ Атака: {stats['ATK']}\n💥 Крит. урон: {stats['CRIT.DMG']}%"
         )
         return
     bot.reply_to(
@@ -215,11 +225,34 @@ def fight(message):
     if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
         winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
         winner_user = users.get(User.user_id == duel[winner]["ID"])
+
+        winner_user["internot"]["duel_wins"] += 1
+
+        if winner_user["internot"]["duel_wins"] % 5 == 0:
+            if winner_user["internot"]["lv"] == 60:
+                return
+            winner_user["internot"]["lv"] += 1
+            bot.send_message(message.chat.id,
+            f"Поздравляем! {winner_user['username']} получил повышение уровня Интернота за победы в дуэлях!",
+            message_thread_id=418
+        )
+
+        users.update(
+            {"internot":
+                 {"duel_wins": winner_user["internot"]["duel_wins"], "lv": winner_user["internot"]["lv"], "posts": winner_user["internot"]["posts"]}
+             },
+            User.user_id == winner_user["user_id"]
+        )
+
         bot.send_message(message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}", message_thread_id=message.message_thread_id)
         active_duels.pop(message.chat.id, None)
 
 @bot.message_handler(commands=['duel'])
-def initiate_pvp(message):
+def initiate_duel(message):
+    if message.chat.id != -1003690262252 or message.message_thread_id != 135:
+        bot.reply_to(message, "Дуэли можно вызывать только в Обороне шиюй.")
+        return
+
     parts = message.text.split(" ")
     if len(parts) != 2:
         bot.reply_to(message, "Пожалуйста, используйте команду в формате: /duel @username")
@@ -281,7 +314,6 @@ def duel_callback_handler(call):
         bot.answer_callback_query(call.id, "Вы отказались от боя.")
         bot.send_message(call.message.chat.id, "Игрок отказался от боя.", message_thread_id = call.message.message_thread_id)
 
-
 @bot.message_handler(commands=['setrole'])
 def set_role(message):
     if not is_admin(message.from_user.id):
@@ -300,47 +332,41 @@ def set_role(message):
 
 
 #INTERNOT SYSTEM
-@bot.message_handler(commands=['upinternot'])
-def up_internot(message):
-    if not is_admin(message.from_user.id):
-        bot.reply_to(message, "Эта команда доступна только администратору.")
-        return
-    parts = message.text.split(" ")
-    user = users.get(User.username == parts[1])
-    if not user:
-        bot.reply_to(message, "Игрок не найден.")
-        return
+@bot.message_handler(func=lambda message: True)
+def post_counter(message):
+    target_id = 2
+    if message.message_thread_id == target_id:
+        user = users.get(User.user_id == message.from_user.id)
+        if not user:
+            return
 
-    current_internot_lv = user["internot_lv"]
-    if current_internot_lv == 60:
-        bot.reply_to(message, "У игрока максимальный уровень Интернота!")
-        return
+        current_lv = user["internot"]["lv"]
+        if current_lv == 60:
+            return
 
-    new_internot_lv = current_internot_lv + 1
-    users.update({"internot_lv": new_internot_lv}, User.user_id == message.from_user.id)
+        current_posts = user["internot"]["posts"]
+        new_posts = current_posts + 1
 
-    if (new_internot_lv % 5 == 0):
-        lv_hp_boost = random.randint(75, 125)
-        lv_atk_boost = random.randint(15, 50)
-        lv_crit_boost = random.randint(1, 5)
+        if new_posts < 3:
+            users.update({"internot": {"lv": current_lv, "posts": new_posts}}, User.user_id == user["user_id"])
+            return
+        new_lv = current_lv + 1
+        users.update({"internot": {"lv": new_lv, "posts": 0}}, User.user_id == user["user_id"])
+        bot.send_message(
+            message.chat.id,
+            f"Поздравляем! {user['username']} получил повышение уровня Интернота за активность в ролевом!",
+            message_thread_id=418
+        )
 
-        updated_stats = {
-            "HP": user["stats"]["HP"] + lv_hp_boost,
-            "ATK": user["stats"]["ATK"] + lv_atk_boost,
-            "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
-        }
 
-        users.update({"stats": updated_stats}, User.user_id == user["user_id"])
-        bot.reply_to(message, f"Поздравляем! Уровень Интернота {user["username"]} повышен до {new_internot_lv}.\n\nБонус к характеристикам за уровень:\n❤️‍🩹 Здоровье: +{lv_hp_boost}\n🗡️ Атака: +{lv_atk_boost}\n💥 Крит. урон: +{lv_crit_boost}%")
-        return
 
-    bot.reply_to(message, f"Поздравляем! Уровень Интернота {user["username"]} повышен до {new_internot_lv}.")
 
 # DEBUG COMMANDS
 @bot.message_handler(commands=['debuggetid'])
 def debug_get_id(message):
     print(bot.get_chat(message.chat.id))
     print(bot.get_chat(message.chat.id).type)
+    print(message.message_thread_id)
 
 @bot.message_handler(commands=['debugcleardb'])
 def debug_clear_db(message):
