@@ -82,6 +82,7 @@ def create_profile(message):
             },
             "stats": {
                 "HP": 0,
+                "DEF": 0,
                 "ATK": 0,
                 "CRIT.DMG": 0
             }
@@ -100,7 +101,7 @@ def my_profile(message):
     if user["stats"]["HP"] != 0:
         bot.reply_to(
             message,
-            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {stats['HP']}\n🗡️ Атака: {stats['ATK']}\n💥 Крит. урон: {stats['CRIT.DMG']}%"
+            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {stats['HP']}\n🛡️ Защита: {stats["DEF"]}\n🗡️ Атака: {stats['ATK']}\n💥 Крит. урон: {stats['CRIT.DMG']}%"
         )
         return
     bot.reply_to(
@@ -154,26 +155,30 @@ def generate_stats(message):
         return
 
     raw_stats = {
-        "HP": [random.randint(800, 2400), random.randint(800, 2400), random.randint(800, 2400)],
-        "ATK": [random.randint(120, 360), random.randint(120, 360), random.randint(120, 360)],
-        "CRIT.DMG": [random.randint(135, 215), random.randint(135, 215), random.randint(135, 215)],
+        "HP": sum(sorted([random.randint(300, 1500) for _ in range(4)])[1:])+800,
+        "DEF": sum(sorted([random.randint(10, 15) for _ in range(4)])[1:])+30,
+        "ATK": sum(sorted([random.randint(75, 175) for _ in range(4)])[1:])+200,
+        "CRIT.DMG": sum(sorted(random.randint(15, 60) for _ in range(4))[1:])+110,
     }
 
 
-    average_stats = {
-        "❤️‍🩹 Здоровье": int(sum(raw_stats["HP"]) / len(raw_stats["HP"])),
-        "🗡️ Атака": int(sum(raw_stats["ATK"]) / len(raw_stats["ATK"])),
-        "💥 Крит. урон": f"{int(sum(raw_stats['CRIT.DMG']) / len(raw_stats['CRIT.DMG']))}%"
+    final_stats = {
+        "❤️‍🩹 Здоровье": raw_stats["HP"],
+        "🛡️ Защита": raw_stats["DEF"],
+        "🗡️ Атака": raw_stats["ATK"],
+        "💥 Крит. урон": f"{raw_stats['CRIT.DMG']}%",
     }
 
     users.update({"stats": {
-        "HP": int(sum(raw_stats["HP"]) / len(raw_stats["HP"])),
-        "ATK": int(sum(raw_stats["ATK"]) / len(raw_stats["ATK"])),
-        "CRIT.DMG": int(sum(raw_stats["CRIT.DMG"]) / len(raw_stats["CRIT.DMG"]))
+        "HP": raw_stats["HP"],
+        "DEF": raw_stats["DEF"],
+        "ATK": raw_stats["ATK"],
+        "CRIT.DMG": raw_stats['CRIT.DMG']
         }
     }, User.user_id == message.from_user.id)
 
-    bot.reply_to(message, "Сгенерированные характеристики:\n" + "\n".join([f"{key}: {value}" for key, value in average_stats.items()]))
+    bot.send_dice(message.chat.id, message_thread_id=message.message_thread_id)
+    bot.reply_to(message, "Полученные характеристики:\n" + "\n".join([f"{key}: {value}" for key, value in final_stats.items()]))
 
 @bot.message_handler(commands=['rolldice'])
 def rolldice(message):
@@ -197,11 +202,13 @@ def fight(message):
 
     base_defense = random.randint(35, 60)
 
+    final_defense = user['stats']['DEF'] + base_defense
+
     check_crit = random.randint(1, 25)
 
     match check_crit:
         case 18 | 19 | 20 | 21 | 22:
-            damage = (damage_multiplier * user["stats"]["ATK"]) * (user["stats"]["CRIT.DMG"] / 100) - base_defense
+            damage = (damage_multiplier * user["stats"]["ATK"]) * (user["stats"]["CRIT.DMG"] / 100) - final_defense
             if duel["initiator"]["ID"] == user["user_id"]:
                 duel["duelist"]["HP"] -= int(damage)
             else:
@@ -246,11 +253,13 @@ def fight(message):
 
         if winner_user["internot"]["lv"] % 5 == 0:
             lv_hp_boost = random.randint(75, 125)
+            lv_defense_boost = random.randint(15, 35)
             lv_atk_boost = random.randint(15, 50)
             lv_crit_boost = random.randint(1, 5)
 
             updated_stats = {
                 "HP": user["stats"]["HP"] + lv_hp_boost,
+                "DEF": user["stats"]["DEF"] + lv_defense_boost,
                 "ATK": user["stats"]["ATK"] + lv_atk_boost,
                 "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
             }
@@ -373,11 +382,13 @@ def post_counter(message):
 
         if new_lv % 5 == 0:
             lv_hp_boost = random.randint(75, 125)
+            lv_defense_boost = random.randint(15, 35)
             lv_atk_boost = random.randint(15, 50)
             lv_crit_boost = random.randint(1, 5)
 
             updated_stats = {
                 "HP": user["stats"]["HP"] + lv_hp_boost,
+                "DEF": user["stats"]["DEF"] + lv_defense_boost,
                 "ATK": user["stats"]["ATK"] + lv_atk_boost,
                 "CRIT.DMG": user["stats"]["CRIT.DMG"] + lv_crit_boost
             }
