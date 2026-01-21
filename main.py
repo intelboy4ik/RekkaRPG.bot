@@ -38,8 +38,19 @@ forward_waiting = {}
 active_duels = {}
 
 # ADMIN ID'S
-MaxieID = 1298778443
-WinzuID = 1949329868
+ADMINS_IDS = list(map(int, os.getenv("ADMINS_IDS").split(",")))
+
+#BALANCE CONSTANTS
+MAX_LV = int(os.getenv("MAX_LV"))
+DUEL_WINS_PER_LV = int(os.getenv("DUEL_WINS_PER_LV"))
+POSTS_PER_LV = int(os.getenv("POSTS_PER_LV"))
+
+#TELEGRAM CONSTANTS
+MAIN_GROUP_ID = int(os.getenv("MAIN_GROUP_ID"))
+SHIYUI_THREAD_ID = int(os.getenv("SHIYUI_THREAD_ID"))
+ROLEPLAY_THREAD_ID = int(os.getenv("ROLEPLAY_THREAD_ID"))
+INTERNOT_UP_THREAD_ID = int(os.getenv("INTERNOT_UP_THREAD_ID"))
+
 
 # Base commands
 @bot.message_handler(commands=['start', "help"])
@@ -57,8 +68,8 @@ def get_invite(message):
 @bot.message_handler(func=lambda message: forward_waiting.get(message.from_user.id, False))
 def forward_message(message):
     try:
-        bot.send_message(MaxieID, f"Пришла новая заявка! \n{message.text}")
-        bot.send_message(WinzuID, f"Пришла новая заявка! \n{message.text}")
+        for ID in ADMINS_IDS:
+            bot.send_message(ID, f"Пришла новая заявка! \n{message.text}")
         bot.reply_to(message, "Ваша заявка на вступление принята.")
     except Exception as e:
         print(e)
@@ -100,7 +111,7 @@ def my_profile(message):
     if user["chars"]["HP"] != 0:
         bot.reply_to(
             message,
-            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user["internot"]["lv"]}\n\n❤️‍🩹 Здоровье: {chars['HP']}\n🛡️ Защита: {chars["DEF"]}\n🗡️ Атака: {chars['ATK']}\n💥 Крит. урон: {chars['CRIT.DMG']}%"
+            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user['internot']['lv']}\n\n❤️‍🩹 Здоровье: {chars['HP']}\n🛡️ Защита: {chars["DEF"]}\n🗡️ Атака: {chars['ATK']}\n💥 Крит. урон: {chars['CRIT.DMG']}%"
         )
         return
     bot.reply_to(
@@ -108,7 +119,7 @@ def my_profile(message):
     )
 
 @bot.message_handler(commands=["viewid"])
-def view_profile(message):
+def view_id(message):
     if not is_admin(message.from_user.id):
         bot.reply_to(message, "Эта команда доступна только администратору.")
         return
@@ -271,13 +282,13 @@ def fight_callback_query(call):
 
             winner_user["internot"]["duel_wins"] += 1
 
-            if winner_user["internot"]["duel_wins"] % 5 == 0:
-                if winner_user["internot"]["lv"] == 60:
+            if winner_user["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
+                if winner_user["internot"]["lv"] == MAX_LV:
                     return
                 winner_user["internot"]["lv"] += 1
                 bot.send_message(call.message.chat.id,
                 f"Поздравляем! {winner_user['username']} получил повышение уровня Интернота за победы в дуэлях!",
-                message_thread_id=418
+                message_thread_id=INTERNOT_UP_THREAD_ID
             )
 
             users.update(
@@ -294,10 +305,10 @@ def fight_callback_query(call):
                 lv_crit_boost = random.randint(1, 5)
 
                 updated_chars = {
-                    "HP": user["chars"]["HP"] + lv_hp_boost,
-                    "DEF": user["chars"]["DEF"] + lv_defense_boost,
-                    "ATK": user["chars"]["ATK"] + lv_atk_boost,
-                    "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
+                    "HP": winner_user["chars"]["HP"] + lv_hp_boost,
+                    "DEF": winner_user["chars"]["DEF"] + lv_defense_boost,
+                    "ATK": winner_user["chars"]["ATK"] + lv_atk_boost,
+                    "CRIT.DMG": winner_user["chars"]["CRIT.DMG"] + lv_crit_boost
                 }
 
                 users.update({"chars": updated_chars}, User.user_id == winner_user["user_id"])
@@ -315,7 +326,7 @@ def fight_callback_query(call):
 
 @bot.message_handler(commands=['duel'])
 def initiate_duel(message):
-    if message.chat.id != -1003690262252 or message.message_thread_id != 135:
+    if message.chat.id != MAIN_GROUP_ID or message.message_thread_id != SHIYUI_THREAD_ID:
         bot.reply_to(message, "Дуэли можно вызывать только в Обороне шиюй.")
         return
 
@@ -326,8 +337,13 @@ def initiate_duel(message):
 
     initiator = users.get(User.user_id == message.from_user.id)
     duelist = users.get(User.username == parts[1])
+    
     if not duelist or duelist["chars"]["HP"] <= 0:
         bot.reply_to(message, "Игрок не найден либо не готов к бою.")
+        return
+    
+    if initiator["chars"]["HP"] <= 0:
+        bot.reply_to(message, "Вы не готовы к дуэли")
         return
 
     if initiator["user_id"] == duelist["user_id"]:
@@ -417,20 +433,20 @@ def set_role(message):
 #INTERNOT SYSTEM
 @bot.message_handler(func=lambda message: True)
 def post_counter(message):
-    target_id = 2
+    target_id = ROLEPLAY_THREAD_ID
     if message.message_thread_id == target_id:
         user = users.get(User.user_id == message.from_user.id)
         if not user:
             return
 
         current_lv = user["internot"]["lv"]
-        if current_lv == 60:
+        if current_lv == MAX_LV:
             return
 
         current_posts = user["internot"]["posts"]
         new_posts = current_posts + 1
 
-        if new_posts < 3:
+        if new_posts < POSTS_PER_LV:
             users.update({"internot": {"lv": current_lv, "posts": new_posts}}, User.user_id == user["user_id"])
             return
         new_lv = current_lv + 1
@@ -438,7 +454,7 @@ def post_counter(message):
         bot.send_message(
             message.chat.id,
             f"Поздравляем! {user['username']} получил повышение уровня Интернота за активность в ролевом!",
-            message_thread_id=418
+            message_thread_id=INTERNOT_UP_THREAD_ID
         )
 
         if new_lv % 5 == 0:
@@ -475,7 +491,7 @@ def debug_clear_db(message):
 
 # Permission checker
 def is_admin(user_id):
-    return user_id in [MaxieID, WinzuID]
+    return user_id in ADMINS_IDS
 
 
 # Bot polling
