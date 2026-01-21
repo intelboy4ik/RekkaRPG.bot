@@ -66,7 +66,6 @@ def forward_message(message):
     finally:
         forward_waiting.pop(message.from_user.id, None)
 
-
 # Profile and chars commands
 @bot.message_handler(commands=["createprofile"])
 def create_profile(message):
@@ -185,89 +184,136 @@ def rolldice(message):
     bot.reply_to(message, "🎲 Выпавшее число: " + str(random.randint(1, 25)))
 
 #Roleplay system
-@bot.message_handler(commands=['fight'])
-def fight(message):
-    user = users.get(User.user_id == message.from_user.id)
+@bot.callback_query_handler(func=lambda call: call.data in ["player_fights", "player_runaway"])
+def fight_callback_query(call):
+    user = users.get(User.user_id == call.from_user.id)
     if not user:
-        bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
+        bot.reply_to(call.message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
         return
 
-    duel = active_duels.get(message.chat.id)
+    duel = active_duels.get(call.message.chat.id)
     if not duel:
-        bot.reply_to(message, "Извините, вы не можете бить воздух. Вызовите кого-нибудь на дуэль с помощью команды /duel @username")
+        bot.answer_callback_query(call.message, "Извините, вы не можете бить воздух. Вызовите кого-нибудь на дуэль с помощью команды /duel @username")
         return
 
-    # Damage formula
-    damage_multiplier = random.randint(75, 95) / 100
+    markup = types.InlineKeyboardMarkup()
+    fight = types.InlineKeyboardButton("🗡️ Атаковать", callback_data="player_fights")
+    runaway = types.InlineKeyboardButton("🏃‍♂️‍➡️ Сбежать", callback_data="player_runaway")
+    markup.row(fight, runaway)
 
-    base_defense = random.randint(35, 60)
-
-    final_defense = user['chars']['DEF'] + base_defense
-
-    check_crit = random.randint(1, 25)
-
-    match check_crit:
-        case 18 | 19 | 20 | 21 | 22:
-            damage = (damage_multiplier * user["chars"]["ATK"]) * (user["chars"]["CRIT.DMG"] / 100) - final_defense
-            if duel["initiator"]["ID"] == user["user_id"]:
-                duel["duelist"]["HP"] -= int(damage)
-            else:
-                duel["initiator"]["HP"] -= int(damage)
-            bot.reply_to(message, f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!")
-        case 23 | 24 | 25:
-            damage = (damage_multiplier * user["chars"]["ATK"]) * (user["chars"]["CRIT.DMG"] / 100) * 2 - base_defense
-            if duel["initiator"]["ID"] == user["user_id"]:
-                 duel["duelist"]["HP"] -= int(damage)
-            else:
-                 duel["initiator"]["HP"] -= int(damage)
-            bot.reply_to(message, f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!")
-        case _:
-            damage = (damage_multiplier * user["chars"]["ATK"]) - base_defense
-            if duel["initiator"]["ID"] == user["user_id"]:
-                duel["duelist"]["HP"] -= int(damage)
-            else:
-                duel["initiator"]["HP"] -= int(damage)
-            bot.reply_to(message, f"👊 Вы нанесли {int(damage)} урона противнику!")
-
-    if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
-        winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
-        winner_user = users.get(User.user_id == duel[winner]["ID"])
-
-        winner_user["internot"]["duel_wins"] += 1
-
-        if winner_user["internot"]["duel_wins"] % 5 == 0:
-            if winner_user["internot"]["lv"] == 60:
-                return
-            winner_user["internot"]["lv"] += 1
-            bot.send_message(message.chat.id,
-            f"Поздравляем! {winner_user['username']} получил повышение уровня Интернота за победы в дуэлях!",
-            message_thread_id=418
+    if duel["turn"] != user['user_id']:
+        bot.answer_callback_query(
+            call.id,
+            "Сейчас не ваш ход!",
         )
+        return
 
-        users.update(
-            {"internot":
-                 {"duel_wins": winner_user["internot"]["duel_wins"], "lv": winner_user["internot"]["lv"], "posts": winner_user["internot"]["posts"]}
-             },
-            User.user_id == winner_user["user_id"]
-        )
+    if duel["turn"] == duel["initiator"]["ID"]:
+        duel["turn"] = duel["duelist"]["ID"]
+    else:
+        duel["turn"] = duel["initiator"]["ID"]
 
-        if winner_user["internot"]["lv"] % 5 == 0:
-            lv_hp_boost = random.randint(75, 125)
-            lv_defense_boost = random.randint(15, 35)
-            lv_atk_boost = random.randint(15, 50)
-            lv_crit_boost = random.randint(1, 5)
+    next_turn = users.get(User.user_id == duel["turn"])
 
-            updated_chars = {
-                "HP": user["chars"]["HP"] + lv_hp_boost,
-                "DEF": user["chars"]["DEF"] + lv_defense_boost,
-                "ATK": user["chars"]["ATK"] + lv_atk_boost,
-                "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
-            }
+    if call.data == "player_fights":
 
-            users.update({"chars": updated_chars}, User.user_id == winner_user["user_id"])
+        # Damage formula
+        damage_multiplier = random.randint(65, 95) / 100
 
-        bot.send_message(message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}", message_thread_id=message.message_thread_id)
-        active_duels.pop(message.chat.id, None)
+        defense_multiplier = random.randint(35, 85) / 100
+
+        base_defense = random.randint(35, 60)
+
+        final_defense = user['chars']['DEF'] + base_defense
+
+        damage = damage_multiplier * user["chars"]["ATK"] - final_defense * defense_multiplier
+
+        check_crit = random.randint(1, 25)
+
+        match check_crit:
+            case 21 | 22 | 23 | 24:
+                damage *= user["chars"]["CRIT.DMG"] / 100
+                if duel["initiator"]["ID"] == user["user_id"]:
+                    duel["duelist"]["HP"] -= int(damage)
+                else:
+                    duel["initiator"]["HP"] -= int(damage)
+                bot.send_message(
+                    call.message.chat.id,
+                    f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!\n\nХод переходит к {next_turn['username']}...",
+                    reply_markup=markup,
+                    message_thread_id=call.message.message_thread_id
+                )
+            case 25:
+                damage *= user["chars"]["CRIT.DMG"] / 100 * 2
+                if duel["initiator"]["ID"] == user["user_id"]:
+                     duel["duelist"]["HP"] -= int(damage)
+                else:
+                     duel["initiator"]["HP"] -= int(damage)
+                bot.send_message(
+                    call.message.chat.id,
+                    f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!\n\nХод переходит к {next_turn['username']}...",
+                    reply_markup=markup,
+                    message_thread_id=call.message.message_thread_id
+                )
+            case _:
+                if duel["initiator"]["ID"] == user["user_id"]:
+                    duel["duelist"]["HP"] -= int(damage)
+                else:
+                    duel["initiator"]["HP"] -= int(damage)
+                bot.send_message(
+                    call.message.chat.id,
+                    f"👊 Вы нанесли {int(damage)} урона противнику!\n\nХод переходит к {next_turn['username']}...",
+                    reply_markup=markup,
+                    message_thread_id=call.message.message_thread_id
+                )
+
+        if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
+            winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
+            winner_user = users.get(User.user_id == duel[winner]["ID"])
+
+            winner_user["internot"]["duel_wins"] += 1
+
+            if winner_user["internot"]["duel_wins"] % 5 == 0:
+                if winner_user["internot"]["lv"] == 60:
+                    return
+                winner_user["internot"]["lv"] += 1
+                bot.send_message(call.message.chat.id,
+                f"Поздравляем! {winner_user['username']} получил повышение уровня Интернота за победы в дуэлях!",
+                message_thread_id=418
+            )
+
+            users.update(
+                {"internot":
+                     {"duel_wins": winner_user["internot"]["duel_wins"], "lv": winner_user["internot"]["lv"], "posts": winner_user["internot"]["posts"]}
+                 },
+                User.user_id == winner_user["user_id"]
+            )
+
+            if winner_user["internot"]["lv"] % 5 == 0:
+                lv_hp_boost = random.randint(75, 125)
+                lv_defense_boost = random.randint(15, 35)
+                lv_atk_boost = random.randint(15, 50)
+                lv_crit_boost = random.randint(1, 5)
+
+                updated_chars = {
+                    "HP": user["chars"]["HP"] + lv_hp_boost,
+                    "DEF": user["chars"]["DEF"] + lv_defense_boost,
+                    "ATK": user["chars"]["ATK"] + lv_atk_boost,
+                    "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
+                }
+
+                users.update({"chars": updated_chars}, User.user_id == winner_user["user_id"])
+
+            bot.send_message(call.message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}", message_thread_id=call.message.message_thread_id)
+    else:
+        dice = random.randint(1, 18)
+
+        if dice <= 16:
+            bot.send_message(call.message.chat.id, f"{user['username']} попытался сбежать, но ничего не вышло!\n\nХод переходит к {next_turn['username']}...", message_thread_id=call.message.message_thread_id, reply_markup=markup)
+            return
+        bot.send_message(call.message.chat.id, f"{user['username']} сбежал с поля боя!", message_thread_id=call.message.message_thread_id)
+
+        active_duels.pop(call.message.chat.id, None)
 
 @bot.message_handler(commands=['duel'])
 def initiate_duel(message):
@@ -285,12 +331,13 @@ def initiate_duel(message):
     if not duelist or duelist["chars"]["HP"] <= 0:
         bot.reply_to(message, "Игрок не найден либо не готов к бою.")
         return
-    if initiator["user_id"] == duelist["user_id"]:
-        bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
-        return
+    # if initiator["user_id"] == duelist["user_id"]:
+    #     bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
+    #     return
 
     active_duels[message.chat.id] = {
         "is_active": True,
+        "turn": None,
         "initiator": {
             "ID": initiator["user_id"],
             "HP": initiator["chars"]["HP"]
@@ -302,8 +349,8 @@ def initiate_duel(message):
     }
 
     markup = types.InlineKeyboardMarkup()
-    accept_duel = types.InlineKeyboardButton("Согласиться", callback_data="duel_accepted")
-    decline_duel = types.InlineKeyboardButton("Отказаться", callback_data="duel_declined")
+    accept_duel = types.InlineKeyboardButton("✅ Согласиться", callback_data="duel_accepted")
+    decline_duel = types.InlineKeyboardButton("❎ Отказаться", callback_data="duel_declined")
     markup.row(accept_duel, decline_duel)
 
     bot.send_message(message.chat.id, f"Внимание! {initiator['username']} вызвал на бой {duelist['username']}!", reply_markup=markup, message_thread_id=message.message_thread_id)
@@ -321,16 +368,31 @@ def duel_callback_handler(call):
 
     if call.data == "duel_accepted":
         bot.answer_callback_query(call.id, "Вы согласились на дуэль!")
+
         active_duels.get(call.message.chat.id)["is_active"] = False
+
         initiator = users.get(User.user_id == duel["initiator"]["ID"])
         duelist = users.get(User.user_id == duel["duelist"]["ID"])
+
+        markup = types.InlineKeyboardMarkup()
+        fight = types.InlineKeyboardButton("🗡️ Атаковать", callback_data="player_fights")
+        runaway = types.InlineKeyboardButton("🏃‍♂️‍➡️ Сбежать", callback_data="player_runaway")
+        markup.row(fight, runaway)
+
+        first_turn = random.choice([initiator, duelist])
+
+        duel["turn"] = first_turn["user_id"]
+
         bot.send_message(
             call.message.chat.id,
             f"{duelist['role']}\n❤️‍🩹 {duelist['chars']['HP']} • 🗡️ {duelist['chars']['ATK']} • 💥 {duelist['chars']['CRIT.DMG']}%"
-            f"\n\nДля начала боя используйте команду /fight\n\n"
+            f"\n\nПервый ход делает... { first_turn['username'] }\n\n"
             f"{initiator['role']}\n❤️‍🩹 {initiator['chars']['HP']} • 🗡️ {initiator['chars']['ATK']} • 💥 {initiator['chars']['CRIT.DMG']}%",
-            message_thread_id = call.message.message_thread_id
+            message_thread_id = call.message.message_thread_id,
+            reply_markup=markup
         )
+
+
     else:
         active_duels.get(call.message.chat.id)["is_active"] = False
         bot.answer_callback_query(call.id, "Вы отказались от боя.")
@@ -394,8 +456,6 @@ def post_counter(message):
             }
 
             users.update({"chars": updated_chars}, User.user_id == user["user_id"])
-
-
 
 
 # DEBUG COMMANDS
