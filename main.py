@@ -331,9 +331,9 @@ def initiate_duel(message):
     if not duelist or duelist["chars"]["HP"] <= 0:
         bot.reply_to(message, "Игрок не найден либо не готов к бою.")
         return
-    # if initiator["user_id"] == duelist["user_id"]:
-    #     bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
-    #     return
+    if initiator["user_id"] == duelist["user_id"]:
+        bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
+        return
 
     active_duels[message.chat.id] = {
         "is_active": True,
