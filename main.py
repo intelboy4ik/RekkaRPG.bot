@@ -16,6 +16,7 @@ import signal
 import sys
 
 from commands.profile import ProfileHandler
+from systems.internot_system import InternotSystem
 
 # Initialize database
 db = TinyDB("database.json", storage=CachingMiddleware(JSONStorage))
@@ -55,6 +56,7 @@ ROLEPLAY_THREAD_ID = int(os.getenv("ROLEPLAY_THREAD_ID"))
 INTERNOT_UP_THREAD_ID = int(os.getenv("INTERNOT_UP_THREAD_ID"))
 
 profile_handler = ProfileHandler(bot, users, User)
+internot_system = InternotSystem(bot, users, User)
 
 # Base commands
 @bot.message_handler(commands=['start', "help"])
@@ -362,47 +364,7 @@ def set_role(message):
 
 
 #INTERNOT SYSTEM
-@bot.message_handler(func=lambda message: True)
-def post_counter(message):
-    target_id = ROLEPLAY_THREAD_ID
-    if message.message_thread_id == target_id:
-        user = users.get(User.user_id == message.from_user.id)
-        if not user:
-            return
-
-        current_lv = user["internot"]["lv"]
-        if current_lv == MAX_LV:
-            return
-
-        current_posts = user["internot"]["posts"]
-        new_posts = current_posts + 1
-
-        if new_posts < POSTS_PER_LV:
-            users.update({"internot": {"lv": current_lv, "posts": new_posts}}, User.user_id == user["user_id"])
-            return
-        new_lv = current_lv + 1
-        users.update({"internot": {"lv": new_lv, "posts": 0}}, User.user_id == user["user_id"])
-        bot.send_message(
-            message.chat.id,
-            f"Поздравляем! {user['username']} получил повышение уровня Интернота за активность в ролевом!",
-            message_thread_id=INTERNOT_UP_THREAD_ID
-        )
-
-        if new_lv % 5 == 0:
-            lv_hp_boost = random.randint(75, 125)
-            lv_defense_boost = random.randint(15, 35)
-            lv_atk_boost = random.randint(15, 50)
-            lv_crit_boost = random.randint(1, 5)
-
-            updated_chars = {
-                "HP": user["chars"]["HP"] + lv_hp_boost,
-                "DEF": user["chars"]["DEF"] + lv_defense_boost,
-                "ATK": user["chars"]["ATK"] + lv_atk_boost,
-                "CRIT.DMG": user["chars"]["CRIT.DMG"] + lv_crit_boost
-            }
-
-            users.update({"chars": updated_chars}, User.user_id == user["user_id"])
-
+internot_system.register_handler()
 
 # DEBUG COMMANDS
 @bot.message_handler(commands=['debuggetid'])
