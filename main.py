@@ -1,4 +1,5 @@
 import random
+
 import os
 from dotenv import load_dotenv
 
@@ -13,6 +14,8 @@ from tinydb.middlewares import CachingMiddleware
 
 import signal
 import sys
+
+from commands.profile import ProfileHandler
 
 # Initialize database
 db = TinyDB("database.json", storage=CachingMiddleware(JSONStorage))
@@ -51,6 +54,7 @@ SHIYUI_THREAD_ID = int(os.getenv("SHIYUI_THREAD_ID"))
 ROLEPLAY_THREAD_ID = int(os.getenv("ROLEPLAY_THREAD_ID"))
 INTERNOT_UP_THREAD_ID = int(os.getenv("INTERNOT_UP_THREAD_ID"))
 
+profile_handler = ProfileHandler(bot, users, User)
 
 # Base commands
 @bot.message_handler(commands=['start', "help"])
@@ -78,79 +82,7 @@ def forward_message(message):
         forward_waiting.pop(message.from_user.id, None)
 
 # Profile and chars commands
-@bot.message_handler(commands=["createprofile"])
-def create_profile(message):
-    if not users.get(User.user_id == message.from_user.id):
-        users.insert({
-            "user_id": message.from_user.id,
-            "username": f"@{message.from_user.username}",
-            "role": "не задана",
-            "internot": {
-                "lv": 1,
-                "posts": 0,
-                "duel_wins": 0
-            },
-            "chars": {
-                "HP": 0,
-                "DEF": 0,
-                "ATK": 0,
-                "CRIT.DMG": 0
-            }
-        })
-        bot.reply_to(message, "Профиль успешно создан!\n\nИспользуйте команду /rollchars чтобы сгенерировать ваши характеристики или /myprofile чтобы просмотреть его.")
-    else:
-        bot.reply_to(message, "У вас уже есть профиль!")
-
-@bot.message_handler(commands=['myprofile'])
-def my_profile(message):
-    if not users.get(User.user_id == message.from_user.id):
-        bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
-        return
-    user = users.get(User.user_id == message.from_user.id)
-    chars = user["chars"]
-    if user["chars"]["HP"] != 0:
-        bot.reply_to(
-            message,
-            f"Игрок | {user['username']}\n\nРоль • {user['role']}\nУр. Интернота • {user['internot']['lv']}\n\n❤️‍🩹 Здоровье: {chars['HP']}\n🛡️ Защита: {chars["DEF"]}\n🗡️ Атака: {chars['ATK']}\n💥 Крит. урон: {chars['CRIT.DMG']}%"
-        )
-        return
-    bot.reply_to(
-        message, f"Игрок | {user['username']}\n\nХарактеристики ещё не заданы. Воспользуйтесь командой /rollchars чтобы их сгенерировать."
-    )
-
-@bot.message_handler(commands=["viewid"])
-def view_id(message):
-    if not is_admin(message.from_user.id):
-        bot.reply_to(message, "Эта команда доступна только администратору.")
-        return
-    try:
-        parts = message.text.split(" ")
-        username = parts[1]
-        user = users.get(User.username == username)
-        if not user:
-            bot.reply_to(message, "Игрок не найден.")
-            return
-        bot.reply_to(
-            message, f"ID | {user['user_id']}\nИгрок | {user['username']}."
-        )
-    except (IndexError, ValueError):
-        bot.reply_to(message, "Пожалуйста, используйте команду в формате: /viewid @username")
-
-@bot.message_handler(commands=['deleteprofile'])
-def delete_profile(message):
-    if not is_admin(message.from_user.id):
-        bot.reply_to(message, "Эта команда доступна только администратору.")
-        return
-    try:
-        parts = message.text.split(" ")
-        user_id = int(parts[1])
-        if users.remove(User.user_id == user_id):
-            bot.reply_to(message, f"Профиль с ID {user_id} успешно удален.")
-        else:
-            bot.reply_to(message, f"Профиль с ID {user_id} не найден.")
-    except (IndexError, ValueError):
-        bot.reply_to(message, "Пожалуйста, введите корректный числовой ID.")
-
+profile_handler.register_commands()
 
 # Roll commands
 @bot.message_handler(commands=['rollchars'])
@@ -170,7 +102,6 @@ def generate_chars(message):
         "ATK": sum(sorted([random.randint(75, 175) for _ in range(4)])[1:])+200,
         "CRIT.DMG": sum(sorted(random.randint(15, 60) for _ in range(4))[1:])+110,
     }
-
 
     final_chars = {
         "❤️‍🩹 Здоровье": raw_chars["HP"],
@@ -194,7 +125,7 @@ def generate_chars(message):
 def rolldice(message):
     bot.reply_to(message, "🎲 Выпавшее число: " + str(random.randint(1, 25)))
 
-#Roleplay system
+#Fight system
 @bot.callback_query_handler(func=lambda call: call.data in ["player_fights", "player_runaway"])
 def fight_callback_query(call):
     user = users.get(User.user_id == call.from_user.id)

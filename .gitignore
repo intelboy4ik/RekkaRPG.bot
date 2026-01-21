@@ -5,3 +5,4 @@ egg.json
 .venv
 __pycache__/
 .env
+bot.py
