@@ -220,13 +220,13 @@ def fight_callback_query(call):
         # Damage formula
         damage_multiplier = random.randint(65, 95) / 100
 
-        defense_multiplier = random.randint(35, 85) / 100
+        base_defense = 45
 
-        base_defense = random.randint(35, 60)
+        final_defense = (user['chars']['DEF'] + base_defense) / 1000
 
-        final_defense = user['chars']['DEF'] + base_defense
+        damage = damage_multiplier * user["chars"]["ATK"]
 
-        damage = damage_multiplier * user["chars"]["ATK"] - final_defense * defense_multiplier
+        damage -= damage * final_defense
 
         check_crit = random.randint(1, 25)
 
@@ -331,6 +331,7 @@ def initiate_duel(message):
     if not duelist or duelist["chars"]["HP"] <= 0:
         bot.reply_to(message, "Игрок не найден либо не готов к бою.")
         return
+
     if initiator["user_id"] == duelist["user_id"]:
         bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
         return
