@@ -224,9 +224,7 @@ def fight_callback_query(call):
 
         final_defense = (user['chars']['DEF'] + base_defense) / 1000
 
-        damage = damage_multiplier * user["chars"]["ATK"]
-
-        damage -= damage * final_defense
+        damage = damage_multiplier * user["chars"]["ATK"] * (1 - final_defense)
 
         check_crit = random.randint(1, 25)
 
