@@ -9,29 +9,20 @@ import telebot
 
 from tinydb import TinyDB, Query
 from tinydb.storages import JSONStorage
-from tinydb.middlewares import CachingMiddleware
 
 import signal
 import sys
 
-from systems.profile_system import ProfileSystem
-from systems.internot_system import InternotSystem
-from systems.combat_system import CombatSystem
+from systems.profile import ProfileSystem
+from systems.internot import InternotSystem
+from systems.combat import CombatSystem
 
-from commands.base_commands import BaseCommands
+from commands.base import BaseCommands
 
 # Initialize database
-db = TinyDB("database.json", storage=CachingMiddleware(JSONStorage))
+db = TinyDB("database.json", storage=JSONStorage)
 users = db.table("users")
 User = Query()
-
-# Graceful exit
-def graceful_exit(signum, frame):
-    db.close()
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, graceful_exit)
-signal.signal(signal.SIGTERM, graceful_exit)
 
 # Initialize bot
 token = os.getenv("TOKEN")
@@ -98,19 +89,19 @@ def rolldice(message):
     bot.reply_to(message, "🎲 Выпавшее число: " + str(random.randint(1, 25)))
 
 # DEBUG COMMANDS
-# @bot.message_handler(commands=['debuggetid'])
-# def debug_get_id(message):
-#     print(bot.get_chat(message.chat.id))
-#     print(bot.get_chat(message.chat.id).type)
-#     print(message.message_thread_id)
-#
-# @bot.message_handler(commands=['debugcleardb'])
-# def debug_clear_db(message):
-#     if not is_admin(message.from_user.id):
-#         bot.reply_to(message, "Эта команда доступна только администратору.")
-#         return
-#     users.truncate()
-#     bot.reply_to(message, "База данных очищена.")
+@bot.message_handler(commands=['debuggetid'])
+def debug_get_id(message):
+    print(bot.get_chat(message.chat.id))
+    print(bot.get_chat(message.chat.id).type)
+    print(message.message_thread_id)
+
+@bot.message_handler(commands=['debugcleardb'])
+def debug_clear_db(message):
+    if not is_admin(message.from_user.id):
+        bot.reply_to(message, "Эта команда доступна только администратору.")
+        return
+    users.truncate()
+    bot.reply_to(message, "База данных очищена.")
 
 
 # Bot polling

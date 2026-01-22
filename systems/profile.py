@@ -102,7 +102,7 @@ class ProfileSystem:
                 self.bot.reply_to(message, "Игрок не найден.")
                 return
             self.bot.reply_to(
-                message, f"ID | {user['user_id']}\nИгрок | {user['username']}."
+                message, f"ID | {user['user_id']}\nИгрок | {user['username']}"
             )
         except (IndexError, ValueError):
             self.bot.reply_to(message, "Пожалуйста, используйте команду в формате: /viewid @username")

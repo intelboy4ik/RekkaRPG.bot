@@ -4,6 +4,7 @@ from telebot import types
 
 from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV
 
+
 class CombatSystem:
     def __init__(self, bot, users, userquery, internot):
         self.bot = bot
@@ -44,9 +45,9 @@ class CombatSystem:
             self.bot.reply_to(message, "Вы не готовы к дуэли")
             return
 
-        if initiator["user_id"] == duelist["user_id"]:
-            self.bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
-            return
+        # if initiator["user_id"] == duelist["user_id"]:
+        #     self.bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
+        #     return
 
         self.active_duels[message.chat.id] = {
             "is_active": True,
@@ -205,29 +206,32 @@ class CombatSystem:
 
             if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
                 winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
-                winner_user = self.users.get(self.UserQuery.user_id == duel[winner]["ID"])
+                winner_user_data = self.users.get(self.UserQuery.user_id == duel[winner]["ID"])
 
-                winner_user["internot"]["duel_wins"] += 1
-
-                if winner_user["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
-                    self.internot.up_internot_lv(
-                        winner_user
-                    )
-                    self.internot.send_congrats_message(
-                        winner_user,
-                        "за победы в дуэлях"
-                    )
+                winner_user_data["internot"]["duel_wins"] += 1
 
                 self.users.update({
                     "internot":
-                        {"duel_wins": winner_user["internot"]["duel_wins"], "lv": winner_user["internot"]["lv"],
-                         "posts": winner_user["internot"]["posts"]}
+                        {
+                            "duel_wins": winner_user_data["internot"]["duel_wins"],
+                            "lv": winner_user_data["internot"]["lv"],
+                            "posts": winner_user_data["internot"]["posts"]
+                        }
                 },
-                    self.UserQuery.user_id == winner_user["user_id"]
+                    self.UserQuery.user_id == winner_user_data["user_id"]
                 )
 
+                if winner_user_data["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
+                    self.internot.up_internot_lv(
+                        winner_user_data
+                    )
+                    self.internot.send_congrats_message(
+                        winner_user_data,
+                        "за победы в дуэлях"
+                    )
+
                 self.bot.send_message(
-                    call.message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user['username']}",
+                    call.message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user_data['username']}",
                     message_thread_id=call.message.message_thread_id
                 )
                 self.active_duels.pop(call.message.chat.id, None)
