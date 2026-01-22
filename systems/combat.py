@@ -45,9 +45,9 @@ class CombatSystem:
             self.bot.reply_to(message, "Вы не готовы к дуэли")
             return
 
-        # if initiator["user_id"] == duelist["user_id"]:
-        #     self.bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
-        #     return
+        if initiator["user_id"] == duelist["user_id"]:
+            self.bot.reply_to(message, "Вы не можете вызвать себя на дуэль!")
+            return
 
         self.active_duels[message.chat.id] = {
             "is_active": True,
