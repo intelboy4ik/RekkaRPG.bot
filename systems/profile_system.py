@@ -12,10 +12,10 @@ def is_admin(user_id):
 
 
 class ProfileSystem:
-    def __init__(self, bot, users, user):
+    def __init__(self, bot, users, userquery):
         self.bot = bot
         self.users = users
-        self.user = user
+        self.UserQuery = userquery
 
     def register_handlers(self):
         self.bot.message_handler(commands=["createprofile"])(self.create_profile_command)
@@ -24,7 +24,7 @@ class ProfileSystem:
         self.bot.message_handler(commands=["viewprofileid"])(self.view_profile_id)
 
     def create_profile_command(self, message):
-        if not self.users.get(self.user.user_id == message.from_user.id):
+        if not self.users.get(self.UserQuery.user_id == message.from_user.id):
             self.users.insert({
                 "user_id": message.from_user.id,
                 "username": f"@{message.from_user.username}",
@@ -51,10 +51,10 @@ class ProfileSystem:
             self.bot.reply_to(message, "У вас уже есть профиль!")
 
     def my_profile_command(self, message):
-        if not self.users.get(self.user.user_id == message.from_user.id):
+        if not self.users.get(self.UserQuery.user_id == message.from_user.id):
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
-        user = self.users.get(self.user.user_id == message.from_user.id)
+        user = self.users.get(self.UserQuery.user_id == message.from_user.id)
         chars = user["chars"]
         if user["chars"]["HP"] != 0:
             self.bot.reply_to(
@@ -83,7 +83,7 @@ class ProfileSystem:
         try:
             parts = message.text.split(" ")
             user_id = int(parts[1])
-            if self.users.remove(self.user.user_id == user_id):
+            if self.users.remove(self.UserQuery.user_id == user_id):
                 self.bot.reply_to(message, f"Профиль с ID {user_id} успешно удален.")
             else:
                 self.bot.reply_to(message, f"Профиль с ID {user_id} не найден.")
@@ -97,7 +97,7 @@ class ProfileSystem:
         try:
             parts = message.text.split(" ")
             username = parts[1]
-            user = self.users.get(self.user.username == username)
+            user = self.users.get(self.UserQuery.username == username)
             if not user:
                 self.bot.reply_to(message, "Игрок не найден.")
                 return

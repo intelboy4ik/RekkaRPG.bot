@@ -3,19 +3,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ADMINS IDS
-ADMINS_IDS = list(map(int, os.getenv("ADMINS_IDS").split(",")))
-
+from config import ADMINS_IDS
 
 def is_admin(user_id):
     return user_id in ADMINS_IDS
 
 
 class BaseCommands:
-    def __init__(self, bot, users, user):
+    def __init__(self, bot, users, userquery):
         self.bot = bot
         self.users = users
-        self.user = user
+        self.UserQuery = userquery
         self.forward_waiting = {}
 
     def register_handlers(self):
@@ -60,7 +58,7 @@ class BaseCommands:
             parts = message.text.split(" ")
             username = parts[1]
             role = " ".join(parts[2:])
-            if self.users.update({"role": role}, self.user.username == username):
+            if self.users.update({"role": role}, self.UserQuery.username == username):
                 self.bot.reply_to(message, f"Роль игрока {username} успешно установлена на '{role}'.")
             else:
                 self.bot.reply_to(message, f"Профиль игрока {username} не найден.")

@@ -16,7 +16,7 @@ import sys
 
 from systems.profile_system import ProfileSystem
 from systems.internot_system import InternotSystem
-from systems.duel_system import DuelSystem
+from systems.combat_system import CombatSystem
 
 from commands.base_commands import BaseCommands
 
@@ -41,7 +41,7 @@ bot = telebot.TeleBot(token=token)
 # Initialize classes
 profile_system = ProfileSystem(bot, users, User)
 internot_system = InternotSystem(bot, users, User)
-fight_system = DuelSystem(bot, users, User, internot_system)
+fight_system = CombatSystem(bot, users, User, internot_system)
 base_commands = BaseCommands(bot, users, User)
 
 # Profile system

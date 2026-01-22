@@ -2,23 +2,13 @@ import random
 
 from telebot import types
 
-import os
-from dotenv import load_dotenv
+from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV
 
-load_dotenv()
-
-from systems.internot_system import InternotSystem
-
-MAIN_GROUP_ID = int(os.getenv("MAIN_GROUP_ID"))
-SHIYUI_THREAD_ID = int(os.getenv("SHIYUI_THREAD_ID"))
-DUEL_WINS_PER_LV = int(os.getenv("DUEL_WINS_PER_LV"))
-
-
-class DuelSystem:
-    def __init__(self, bot, users, user, internot):
+class CombatSystem:
+    def __init__(self, bot, users, userquery, internot):
         self.bot = bot
         self.users = users
-        self.user = user
+        self.UserQuery = userquery
         self.active_duels = {}
         self.internot = internot
 
@@ -27,7 +17,7 @@ class DuelSystem:
         self.bot.callback_query_handler(func=lambda call: call.data in ["duel_accepted", "duel_declined"])(
             self.duel_callback_handler)
         self.bot.callback_query_handler(func=lambda call: call.data in ["player_fights", "player_runaway"])(
-            self.duel_callback_query)
+            self.combat_callback_query)
 
     """
     Инициация дуэли
@@ -43,8 +33,8 @@ class DuelSystem:
             self.bot.reply_to(message, "Пожалуйста, используйте команду в формате: /duel @username")
             return
 
-        initiator = self.users.get(self.user.user_id == message.from_user.id)
-        duelist = self.users.get(self.user.username == parts[1])
+        initiator = self.users.get(self.UserQuery.user_id == message.from_user.id)
+        duelist = self.users.get(self.UserQuery.username == parts[1])
 
         if not duelist or duelist["chars"]["HP"] <= 0:
             self.bot.reply_to(message, "Игрок не найден либо не готов к бою.")
@@ -100,8 +90,8 @@ class DuelSystem:
 
             self.active_duels.get(call.message.chat.id)["is_active"] = False
 
-            initiator = self.users.get(self.user.user_id == duel["initiator"]["ID"])
-            duelist = self.users.get(self.user.user_id == duel["duelist"]["ID"])
+            initiator = self.users.get(self.UserQuery.user_id == duel["initiator"]["ID"])
+            duelist = self.users.get(self.UserQuery.user_id == duel["duelist"]["ID"])
 
             markup = types.InlineKeyboardMarkup()
             fight = types.InlineKeyboardButton("🗡️ Атаковать", callback_data="player_fights")
@@ -131,8 +121,8 @@ class DuelSystem:
     Основная боевая система, побег и бой
     """
 
-    def duel_callback_query(self, call):
-        user_data = self.users.get(self.user.user_id == call.from_user.id)
+    def combat_callback_query(self, call):
+        user_data = self.users.get(self.UserQuery.user_id == call.from_user.id)
         if not user_data:
             self.bot.reply_to(call.message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
@@ -162,7 +152,7 @@ class DuelSystem:
         else:
             duel["turn"] = duel["initiator"]["ID"]
 
-        next_turn = self.users.get(self.user.user_id == duel["turn"])
+        next_turn = self.users.get(self.UserQuery.user_id == duel["turn"])
 
         if call.data == "player_fights":
 
@@ -215,7 +205,7 @@ class DuelSystem:
 
             if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
                 winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
-                winner_user = self.users.get(self.user.user_id == duel[winner]["ID"])
+                winner_user = self.users.get(self.UserQuery.user_id == duel[winner]["ID"])
 
                 winner_user["internot"]["duel_wins"] += 1
 
@@ -233,7 +223,7 @@ class DuelSystem:
                         {"duel_wins": winner_user["internot"]["duel_wins"], "lv": winner_user["internot"]["lv"],
                          "posts": winner_user["internot"]["posts"]}
                 },
-                    self.user.user_id == winner_user["user_id"]
+                    self.UserQuery.user_id == winner_user["user_id"]
                 )
 
                 self.bot.send_message(
