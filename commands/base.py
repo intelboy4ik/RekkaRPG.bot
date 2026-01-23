@@ -1,12 +1,4 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from config import ADMINS_IDS
-
-def is_admin(user_id):
-    return user_id in ADMINS_IDS
+from config import ADMINS_IDS, is_admin
 
 
 class BaseCommands:

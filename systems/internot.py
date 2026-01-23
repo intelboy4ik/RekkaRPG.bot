@@ -1,17 +1,14 @@
 import random
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from config import MAIN_GROUP_ID, INTERNOT_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV
 
 
 class InternotSystem:
-    def __init__(self, bot, users, userquery):
+    def __init__(self, bot, users, userquery, stats_system=None):
         self.bot = bot
         self.users = users
         self.UserQuery = userquery
+        self.stats_system = stats_system
 
     def register_handlers(self):
         self.bot.message_handler(
@@ -41,7 +38,7 @@ class InternotSystem:
 
         internot["lv"] += 1
         self.users.update({"internot": internot}, self.UserQuery.user_id == user_data["user_id"])
-        self._upgrade_user_chars(user_data, internot["lv"])
+        self._upgrade_user_stats(user_data, internot["lv"])
         return True
 
     def send_congrats_message(self, user_data, reason):
@@ -51,13 +48,20 @@ class InternotSystem:
             message_thread_id=INTERNOT_UP_THREAD_ID
         )
 
-    def _upgrade_user_chars(self, user_data, new_lv):
+    def _upgrade_user_stats(self, user_data, new_lv):
         if new_lv % 5 != 0:
             return
 
-        user_data["chars"]["HP"] += random.randint(65, 115)
-        user_data["chars"]["DEF"] += random.randint(15, 35)
-        user_data["chars"]["ATK"] += random.randint(15, 35)
-        user_data["chars"]["CRIT.DMG"] += random.randint(1, 3)
+        bonuses = {
+            "HP": random.randint(65, 115),
+            "DEF": random.randint(15, 35),
+            "ATK": random.randint(15, 35),
+            "CRIT.DMG": random.randint(1, 3),
+            "P.DMG": 0,
+        }
 
-        self.users.update({"chars": user_data["chars"]}, self.UserQuery.user_id == user_data["user_id"])
+        for stat, bonus in bonuses.items():
+            user_data["stats"]["base"][stat] = user_data["stats"]["base"].get(stat, 0) + bonus
+
+        self.users.update({"stats": user_data["stats"]}, self.UserQuery.user_id == user_data["user_id"])
+

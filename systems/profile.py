@@ -1,21 +1,12 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# ADMIN ID'S
-ADMINS_IDS = list(map(int, os.getenv("ADMINS_IDS").split(",")))
-
-
-def is_admin(user_id):
-    return user_id in ADMINS_IDS
+from config import is_admin
 
 
 class ProfileSystem:
-    def __init__(self, bot, users, userquery):
+    def __init__(self, bot, users, userquery, stats_system=None):
         self.bot = bot
         self.users = users
         self.UserQuery = userquery
+        self.stats_system = stats_system
 
     def register_handlers(self):
         self.bot.message_handler(commands=["createprofile"])(self.create_profile_command)
@@ -31,22 +22,35 @@ class ProfileSystem:
                 "role": "не задана",
                 "internot": {
                     "lv": 1,
+                    "coins": 0,
                     "posts": 0,
                     "duel_wins": 0,
-                }
-                ,
-                "chars": {
-                    "HP": 0,
-                    "DEF": 0,
-                    "ATK": 0,
-                    "CRIT.DMG": 0
+                },
+                "stats": {
+                    "base":
+                        {
+                            "HP": 0,
+                            "DEF": 0,
+                            "ATK": 0,
+                            "PEN": 0,
+                            "CRIT.DMG": 0,
+                        },
+                    "modifiers":
+                        {
+                            "flat": {},
+                            "percent": {}
+                        }
+                },
+                "amplifiers": {
+                    "owned": [],
+                    "equipped": None
                 }
             })
             self.bot.reply_to(
                 message,
                 "Профиль успешно создан!"
                 "\n\n"
-                "Используйте команду /rollchars чтобы сгенерировать ваши характеристики или /myprofile чтобы просмотреть его.")
+                "Используйте команду /rollstats чтобы сгенерировать ваши характеристики или /myprofile чтобы просмотреть его.")
         else:
             self.bot.reply_to(message, "У вас уже есть профиль!")
 
@@ -54,26 +58,29 @@ class ProfileSystem:
         if not self.users.get(self.UserQuery.user_id == message.from_user.id):
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
-        user = self.users.get(self.UserQuery.user_id == message.from_user.id)
-        chars = user["chars"]
-        if user["chars"]["HP"] != 0:
+        user_data = self.users.get(self.UserQuery.user_id == message.from_user.id)
+        stats = self.stats_system.recalc_stats(user_data)
+        if stats["HP"] != 0:
             self.bot.reply_to(
                 message,
-                f"Игрок | {user['username']}"
+                f"Игрок | {user_data['username']}"
                 f"\n\n"
-                f"Роль • {user['role']}\nУр. Интернота • {user['internot']['lv']}"
+                f"Роль • {user_data['role']}\n"
+                f"Ур. Интернота • {user_data['internot']['lv']}\n"
+                f"Амплификатор • {user_data['amplifiers']['equipped'] if user_data['amplifiers']['equipped'] else 'пусто'}\n"
+                f"Баланс • {user_data['internot']['coins']} монеток"
                 f"\n\n"
-                f"❤️‍🩹 Здоровье: {chars['HP']}\n"
-                f"🛡️ Защита: {chars["DEF"]}\n"
-                f"🗡️ Атака: {chars['ATK']}\n"
-                f"💥 Крит. урон: {chars['CRIT.DMG']}%"
+                f"❤️‍🩹 Здоровье: {stats['HP']}\n"
+                f"🛡️ Защита: {stats['DEF']}\n"
+                f"🗡️ Атака: {stats['ATK']}\n"
+                f"💥 Крит. урон: {stats['CRIT.DMG']}%"
             )
             return
         self.bot.reply_to(
             message,
-            f"Игрок | {user['username']}"
+            f"Игрок | {user_data['username']}"
             f"\n\n"
-            f"Характеристики ещё не заданы. Воспользуйтесь командой /rollchars чтобы их сгенерировать."
+            f"Характеристики ещё не заданы. Воспользуйтесь командой /rollstats чтобы их сгенерировать."
         )
 
     def delete_profile_command(self, message):
@@ -106,3 +113,4 @@ class ProfileSystem:
             )
         except (IndexError, ValueError):
             self.bot.reply_to(message, "Пожалуйста, используйте команду в формате: /viewid @username")
+

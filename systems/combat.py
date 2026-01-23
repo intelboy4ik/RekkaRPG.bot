@@ -2,16 +2,18 @@ import random
 
 from telebot import types
 
-from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV
+from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV, MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER, \
+    BASE_DEFENSE
 
 
 class CombatSystem:
-    def __init__(self, bot, users, userquery, internot):
+    def __init__(self, bot, users, userquery, internot, stats_system=None):
         self.bot = bot
         self.users = users
         self.UserQuery = userquery
         self.active_duels = {}
         self.internot = internot
+        self.stats_system = stats_system
 
     def register_handlers(self):
         self.bot.message_handler(commands=['duel'])(self.initiate_duel)
@@ -37,11 +39,14 @@ class CombatSystem:
         initiator = self.users.get(self.UserQuery.user_id == message.from_user.id)
         duelist = self.users.get(self.UserQuery.username == parts[1])
 
-        if not duelist or duelist["chars"]["HP"] <= 0:
+        duelist_stats = self.stats_system.recalc_stats(duelist)
+        initiator_stats = self.stats_system.recalc_stats(initiator)
+
+        if not duelist_stats or duelist_stats["HP"] <= 0:
             self.bot.reply_to(message, "Игрок не найден либо не готов к бою.")
             return
 
-        if initiator["chars"]["HP"] <= 0:
+        if initiator_stats["HP"] <= 0:
             self.bot.reply_to(message, "Вы не готовы к дуэли")
             return
 
@@ -54,11 +59,11 @@ class CombatSystem:
             "turn": None,
             "initiator": {
                 "ID": initiator["user_id"],
-                "HP": initiator["chars"]["HP"]
+                "HP": initiator_stats["HP"]
             },
             "duelist": {
                 "ID": duelist["user_id"],
-                "HP": duelist["chars"]["HP"]
+                "HP": duelist_stats["HP"]
             }
         }
 
@@ -94,6 +99,10 @@ class CombatSystem:
             initiator = self.users.get(self.UserQuery.user_id == duel["initiator"]["ID"])
             duelist = self.users.get(self.UserQuery.user_id == duel["duelist"]["ID"])
 
+            # Stats
+            duelist_stats = self.stats_system.recalc_stats(duelist)
+            initiator_stats = self.stats_system.recalc_stats(initiator)
+
             markup = types.InlineKeyboardMarkup()
             fight = types.InlineKeyboardButton("🗡️ Атаковать", callback_data="player_fights")
             runaway = types.InlineKeyboardButton("🏃‍♂️‍➡️ Сбежать", callback_data="player_runaway")
@@ -105,9 +114,9 @@ class CombatSystem:
 
             self.bot.send_message(
                 call.message.chat.id,
-                f"{duelist['role']}\n❤️‍🩹 {duelist['chars']['HP']} • 🗡️ {duelist['chars']['ATK']} • 💥 {duelist['chars']['CRIT.DMG']}%"
+                f"{duelist['role']}\n❤️‍🩹 {duelist_stats['HP']} • 🗡️ {duelist_stats['ATK']} • 💥 {duelist_stats['CRIT.DMG']}%"
                 f"\n\nПервый ход делает... {first_turn['username']}\n\n"
-                f"{initiator['role']}\n❤️‍🩹 {initiator['chars']['HP']} • 🗡️ {initiator['chars']['ATK']} • 💥 {initiator['chars']['CRIT.DMG']}%",
+                f"{initiator['role']}\n❤️‍🩹 {initiator_stats['HP']} • 🗡️ {initiator_stats['ATK']} • 💥 {initiator_stats['CRIT.DMG']}%",
                 message_thread_id=call.message.message_thread_id,
                 reply_markup=markup
             )
@@ -115,8 +124,11 @@ class CombatSystem:
         else:
             self.active_duels.get(call.message.chat.id)["is_active"] = False
             self.bot.answer_callback_query(call.id, "Вы отказались от боя.")
-            self.bot.send_message(call.message.chat.id, "Игрок отказался от боя.",
-                                  message_thread_id=call.message.message_thread_id)
+            self.bot.send_message(
+                call.message.chat.id,
+                "Игрок отказался от боя.",
+                message_thread_id=call.message.message_thread_id
+            )
 
     """
     Основная боевая система, побег и бой
@@ -156,48 +168,38 @@ class CombatSystem:
         next_turn = self.users.get(self.UserQuery.user_id == duel["turn"])
 
         if call.data == "player_fights":
+            user_stats = self.stats_system.recalc_stats(user_data)
 
-            # Damage formula
-            damage_multiplier = random.randint(65, 95) / 100
+            damage, is_crit, is_double = self.calculate_damage(user_stats)
 
-            base_defense = 45
-
-            final_defense = (user_data['chars']['DEF'] + base_defense) / 1000
-
-            damage = damage_multiplier * user_data["chars"]["ATK"] * (1 - final_defense)
-
-            check_crit = random.randint(1, 25)
-
-            match check_crit:
-                case 21 | 22 | 23 | 24:
-                    damage *= user_data["chars"]["CRIT.DMG"] / 100
-                    self.bot.send_message(
-                        call.message.chat.id,
-                        f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!"
-                        f"\n\n"
-                        f"Ход переходит к {next_turn['username']}...",
-                        reply_markup=markup,
-                        message_thread_id=call.message.message_thread_id
-                    )
-                case 25:
-                    damage *= user_data["chars"]["CRIT.DMG"] / 100 * 2
-                    self.bot.send_message(
-                        call.message.chat.id,
-                        f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!"
-                        f"\n\n"
-                        f"Ход переходит к {next_turn['username']}...",
-                        reply_markup=markup,
-                        message_thread_id=call.message.message_thread_id
-                    )
-                case _:
-                    self.bot.send_message(
-                        call.message.chat.id,
-                        f"👊 Вы нанесли {int(damage)} урона противнику!"
-                        f"\n\n"
-                        f"Ход переходит к {next_turn['username']}...",
-                        reply_markup=markup,
-                        message_thread_id=call.message.message_thread_id
-                    )
+            if is_crit:
+                self.bot.send_message(
+                    call.message.chat.id,
+                    f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!"
+                    f"\n\n"
+                    f"Ход переходит к {next_turn['username']}",
+                    reply_markup=markup,
+                    message_thread_id=call.message.message_thread_id
+                )
+                return
+            if is_double:
+                self.bot.send_message(
+                    call.message.chat.id,
+                    f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!"
+                    f"\n\n"
+                    f"Ход переходит к {next_turn['username']}",
+                    reply_markup=markup,
+                    message_thread_id=call.message.message_thread_id
+                )
+                return
+            self.bot.send_message(
+                call.message.chat.id,
+                f"👊 Вы нанесли {int(damage)} урона противнику!"
+                f"\n\n"
+                f"Ход переходит к {next_turn['username']}",
+                reply_markup=markup,
+                message_thread_id=call.message.message_thread_id
+            )
 
             if duel["initiator"]["ID"] == user_data["user_id"]:
                 duel["duelist"]["HP"] -= int(damage)
@@ -210,13 +212,11 @@ class CombatSystem:
 
                 winner_user_data["internot"]["duel_wins"] += 1
 
+                coins_wins = random.randint(125, 300)
+                winner_user_data["internot"]["coins"] += coins_wins
+
                 self.users.update({
-                    "internot":
-                        {
-                            "duel_wins": winner_user_data["internot"]["duel_wins"],
-                            "lv": winner_user_data["internot"]["lv"],
-                            "posts": winner_user_data["internot"]["posts"]
-                        }
+                    "internot": winner_user_data["internot"]
                 },
                     self.UserQuery.user_id == winner_user_data["user_id"]
                 )
@@ -231,13 +231,13 @@ class CombatSystem:
                     )
 
                 self.bot.send_message(
-                    call.message.chat.id, f"Бой окончен! 🏆 Победитель: {winner_user_data['username']}",
+                    call.message.chat.id,
+                    f"Бой окончен! 🏆 Победитель: {winner_user_data['username']}\n\nНачислили ему {coins_wins} монеток...",
                     message_thread_id=call.message.message_thread_id
                 )
                 self.active_duels.pop(call.message.chat.id, None)
         else:
             dice = random.randint(1, 18)
-
             if dice <= 16:
                 self.bot.send_message(
                     call.message.chat.id,
@@ -253,3 +253,27 @@ class CombatSystem:
             )
 
             self.active_duels.pop(call.message.chat.id, None)
+
+    @staticmethod
+    def calculate_damage(user_stats):
+        damage_multiplier = random.randint(MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER) / 100
+
+        base_defense = BASE_DEFENSE
+
+        final_defense = (user_stats['DEF'] + base_defense - user_stats["PEN"]) / 1000
+
+        damage = damage_multiplier * user_stats["ATK"] * (1 - final_defense)
+
+        check_crit = random.randint(1, 25)
+        is_crit = False
+        is_double_crit = False
+
+        match check_crit:
+            case 21 | 22 | 23 | 24:
+                damage *= user_stats["CRIT.DMG"] / 100
+                is_crit = True
+            case 25:
+                damage *= user_stats["CRIT.DMG"] / 100 * 2
+                is_double_crit = True
+
+        return damage, is_crit, is_double_crit
