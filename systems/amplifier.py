@@ -14,9 +14,9 @@ class AmplifierSystem:
 
     def register_handlers(self):
         self.bot.message_handler(commands=["addamplifier"])(self.add_amplifier)
-        self.bot.message_handler(commands=["equipamplifier"])(self.equip_amplifier)
-        self.bot.message_handler(commands=["unequipamplifier"])(self.unequip_amplifier)
-        self.bot.message_handler(commands=["amplifierstore"])(self.open_amplifier_store)
+        self.bot.message_handler(commands=["equip"])(self.equip_amplifier)
+        self.bot.message_handler(commands=["unequip"])(self.unequip_amplifier)
+        self.bot.message_handler(commands=["store"])(self.open_amplifier_store)
         self.bot.callback_query_handler(func=lambda call: call.data.startswith("buy_amplifier_"))(
             self.buy_amplifier_callback)
 
@@ -27,8 +27,10 @@ class AmplifierSystem:
 
         parts = message.text.split(" ")
         if len(parts) != 6:
-            self.bot.reply_to(message,
-                              "Неверный формат команды! Используйте: /addamplifier <название> <атака> <характеристика> <значение> <цена>")
+            self.bot.reply_to(
+                message,
+                "Неверный формат команды! Используйте: /addamplifier <название> <атака> <характеристика> <значение> <цена>"
+            )
             return
         amplifier_name = parts[1].replace("_", " ")
 
@@ -131,25 +133,28 @@ class AmplifierSystem:
 
     def open_amplifier_store(self, message):
         markup = types.InlineKeyboardMarkup()
-        for amplifier in self.amplifiers:
+        for amplifier in self.amplifiers.all():
             button = types.InlineKeyboardButton(
                 text=f"{amplifier['name']} • {amplifier['cost']} 🪙",
-                callback_data=f"buy_amplifier_{amplifier['name']}"
+                callback_data=f"buy_amplifier_{amplifier.doc_id}"
             )
             markup.row(button)
 
         self.bot.send_message(
             message.chat.id,
             f"_🛍️ Магазин амплификаторов_\n\n" +
-            "\n".join([f"*{amplifier['name']}* • Атака {amplifier['stats']['ATK']}" for amplifier in self.amplifiers]),
+            "\n".join(
+                [f"*{amplifier['name']}* • Атака {amplifier['stats']['ATK']}\n" for amplifier in self.amplifiers]),
             reply_markup=markup,
             parse_mode="Markdown"
         )
 
     def buy_amplifier_callback(self, call):
-        parts = call.data.split("_")
-        amplifier_name = parts[2]
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == amplifier_name)
+        amp_id = call.data.split("_")[2]
+
+        amplifier = self.amplifiers.get(doc_id=amp_id)
+        amplifier_name = amplifier["name"]
+
         user = self.user.get(self.UserQuery.user_id == call.from_user.id)
 
         if not user:

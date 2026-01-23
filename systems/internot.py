@@ -53,11 +53,11 @@ class InternotSystem:
             return
 
         bonuses = {
-            "HP": random.randint(65, 115),
-            "DEF": random.randint(15, 35),
-            "ATK": random.randint(15, 35),
+            "HP": random.randint(75, 135),
+            "DEF": random.randint(25, 45),
+            "ATK": random.randint(25, 45),
             "CRIT.DMG": random.randint(1, 3),
-            "P.DMG": 0,
+            "P.DMG": 2,
         }
 
         for stat, bonus in bonuses.items():
