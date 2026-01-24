@@ -8,7 +8,7 @@ from tinydb.storages import JSONStorage
 import config
 from systems.profile import ProfileSystem
 from systems.internot import InternotSystem
-from systems.combat import CombatSystem
+from systems.duel import DuelSystem
 from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
 
@@ -18,11 +18,11 @@ from commands.base import BaseCommands
 db = TinyDB("database.json", storage=JSONStorage)
 
 # Tables
-users = db.table("users")
+players = db.table("players")
 amplifiers = db.table("amplifiers")
 
 # Queries
-UserQuery = Query()
+PlayerQuery = Query()
 AmplifierQuery = Query()
 
 # Initialize bot
@@ -31,14 +31,14 @@ bot = telebot.TeleBot(token=token)
 
 # Initialize classes
 # Systems classes
-stats_system = StatsSystem(bot, users, UserQuery)
-profile_system = ProfileSystem(bot, users, UserQuery, stats_system)
-internot_system = InternotSystem(bot, users, UserQuery, stats_system)
-amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, users, UserQuery, stats_system)
-fight_system = CombatSystem(bot, users, UserQuery, internot_system, stats_system)
+stats_system = StatsSystem(bot, players, PlayerQuery)
+profile_system = ProfileSystem(bot, players, PlayerQuery, stats_system)
+internot_system = InternotSystem(bot, players, PlayerQuery, stats_system)
+amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
+fight_system = DuelSystem(bot, players, PlayerQuery, internot_system, stats_system)
 
 # Commands classes
-base_commands = BaseCommands(bot, users, UserQuery)
+base_commands = BaseCommands(bot, players, PlayerQuery)
 
 # Profile system
 profile_system.register_handlers()
@@ -76,7 +76,7 @@ def debug_clear_db(message):
     if not config.is_admin(message.from_user.id):
         bot.reply_to(message, "Эта команда доступна только администратору.")
         return
-    users.truncate()
+    players.truncate()
     bot.reply_to(message, "База данных очищена.")
 
 

@@ -2,10 +2,10 @@ from config import ADMINS_IDS, is_admin
 
 
 class BaseCommands:
-    def __init__(self, bot, users, userquery):
+    def __init__(self, bot, players, playerquery):
         self.bot = bot
-        self.users = users
-        self.UserQuery = userquery
+        self.players = players
+        self.PlayerQuery = playerquery
         self.forward_waiting = {}
 
     def register_handlers(self):
@@ -50,7 +50,7 @@ class BaseCommands:
             parts = message.text.split(" ")
             username = parts[1]
             role = " ".join(parts[2:])
-            if self.users.update({"role": role}, self.UserQuery.username == username):
+            if self.players.update({"role": role}, self.PlayerQuery.username == username):
                 self.bot.reply_to(message, f"Роль игрока {username} успешно установлена на '{role}'.")
             else:
                 self.bot.reply_to(message, f"Профиль игрока {username} не найден.")

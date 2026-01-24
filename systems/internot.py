@@ -4,10 +4,10 @@ from config import MAIN_GROUP_ID, INTERNOT_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POS
 
 
 class InternotSystem:
-    def __init__(self, bot, users, userquery, stats_system=None):
+    def __init__(self, bot, players, playerquery, stats_system=None):
         self.bot = bot
-        self.users = users
-        self.UserQuery = userquery
+        self.players = players
+        self.PlayerQuery = playerquery
         self.stats_system = stats_system
 
     def register_handlers(self):
@@ -16,39 +16,39 @@ class InternotSystem:
         )(self.posts_counter)
 
     def posts_counter(self, message):
-        user_data = self.users.get(self.UserQuery.user_id == message.from_user.id)
-        if not user_data:
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             return
 
-        internot = user_data["internot"]
+        internot = player_data["internot"]
         internot["posts"] += 1
 
         # всегда сохраняем посты
-        self.users.update({"internot": internot}, self.UserQuery.user_id == user_data["user_id"])
+        self.players.update({"internot": internot}, self.PlayerQuery.uid == player_data["uid"])
 
         if internot["posts"] % POSTS_PER_LV == 0:
-            if self.up_internot_lv(user_data):
-                self.send_congrats_message(user_data, "за активность в ролевом чате")
+            if self.up_internot_lv(player_data):
+                self.send_congrats_message(player_data, "за активность в ролевом чате")
 
-    def up_internot_lv(self, user_data) -> bool:
-        internot = user_data["internot"]
+    def up_internot_lv(self, player_data) -> bool:
+        internot = player_data["internot"]
 
         if internot["lv"] >= MAX_LV:
             return False
 
         internot["lv"] += 1
-        self.users.update({"internot": internot}, self.UserQuery.user_id == user_data["user_id"])
-        self._upgrade_user_stats(user_data, internot["lv"])
+        self.players.update({"internot": internot}, self.PlayerQuery.uid == player_data["uid"])
+        self._upgrade_player_stats(player_data, internot["lv"])
         return True
 
-    def send_congrats_message(self, user_data, reason):
+    def send_congrats_message(self, player_data, reason):
         self.bot.send_message(
             MAIN_GROUP_ID,
-            f"Поздравляем! {user_data['username']} получил повышение уровня Интернота {reason}!🎉",
+            f"Поздравляем! {player_data['username']} получил повышение уровня Интернота {reason}!🎉",
             message_thread_id=INTERNOT_UP_THREAD_ID
         )
 
-    def _upgrade_user_stats(self, user_data, new_lv):
+    def _upgrade_player_stats(self, player_data, new_lv):
         if new_lv % 5 != 0:
             return
 
@@ -61,7 +61,7 @@ class InternotSystem:
         }
 
         for stat, bonus in bonuses.items():
-            user_data["stats"]["base"][stat] = user_data["stats"]["base"].get(stat, 0) + bonus
+            player_data["stats"]["base"][stat] = player_data["stats"]["base"].get(stat, 0) + bonus
 
-        self.users.update({"stats": user_data["stats"]}, self.UserQuery.user_id == user_data["user_id"])
+        self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
 

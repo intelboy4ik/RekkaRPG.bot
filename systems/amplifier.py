@@ -1,15 +1,15 @@
 from telebot import types
 
-from config import is_admin, ENGINES_POSSIBLE_STATS
+from config import is_admin, AMPLIFIER_POSSIBLE_STATS
 
 
 class AmplifierSystem:
-    def __init__(self, bot, amplifiers, amplifierquery, user, userequery, stats_system=None):
+    def __init__(self, bot, amplifiers, amplifierquery, players, playerquery, stats_system=None):
         self.bot = bot
         self.amplifiers = amplifiers
         self.AmplifierQuery = amplifierquery
-        self.user = user
-        self.UserQuery = userequery
+        self.players = players
+        self.PlayerQuery = playerquery
         self.stats_system = stats_system
 
     def register_handlers(self):
@@ -92,14 +92,14 @@ class AmplifierSystem:
         self.bot.reply_to(message, f"Амплификатор {name} успешно удален.")
 
     def equip_amplifier(self, message):
-        user_data = self.user.get(self.UserQuery.user_id == message.from_user.id)
-        if not user_data:
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
 
-        user_stats = user_data["stats"]
+        player_stats = player_data["stats"]
 
-        if user_data["amplifiers"]["equipped"]:
+        if player_data["amplifiers"]["equipped"]:
             self.bot.reply_to(message, "У вас уже есть экипированный амплификатор!")
             return
 
@@ -110,41 +110,41 @@ class AmplifierSystem:
             self.bot.reply_to(message, "Такого амплификатора не существует!")
             return
 
-        if amplifier["name"] not in user_data["amplifiers"]["owned"]:
+        if amplifier["name"] not in player_data["amplifiers"]["owned"]:
             self.bot.reply_to(message, "У вас нет этого амплификатора в инвентаре!")
             return
 
         for key, value in amplifier["stats"].items():
             match key:
                 case "ATK":
-                    user_stats["base"][key] += value
+                    player_stats["base"][key] += value
                 case "CRIT.DMG" | "PEN":
-                    user_stats["modifiers"]["flat"][key] = user_stats["modifiers"]["flat"].get(key, 0) + value
+                    player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) + value
                 case _:
-                    user_stats["modifiers"]["percent"][key] = user_stats["modifiers"]["percent"].get(key, 0) + value
+                    player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) + value
 
-        user_data["amplifiers"]["equipped"] = amplifier["name"]
+        player_data["amplifiers"]["equipped"] = amplifier["name"]
 
-        self.user.update({
-            "stats": user_data["stats"],
-            "amplifiers": user_data["amplifiers"]
-        }, self.UserQuery.user_id == message.from_user.id)
+        self.players.update({
+            "stats": player_data["stats"],
+            "amplifiers": player_data["amplifiers"]
+        }, self.PlayerQuery.uid == message.from_user.id)
 
         self.bot.reply_to(message, f"Амплификатор {amplifier['name']} успешно экипирован!")
 
     def unequip_amplifier(self, message):
-        user_data = self.user.get(self.UserQuery.user_id == message.from_user.id)
-        if not user_data:
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
 
-        user_stats = user_data["stats"]
+        player_stats = player_data["stats"]
 
-        if "equipped" not in user_data["amplifiers"] or not user_data["amplifiers"]["equipped"]:
+        if "equipped" not in player_data["amplifiers"] or not player_data["amplifiers"]["equipped"]:
             self.bot.reply_to(message, "У вас нет амплификатора!")
             return
 
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == user_data["amplifiers"]["equipped"])
+        amplifier = self.amplifiers.get(self.AmplifierQuery.name == player_data["amplifiers"]["equipped"])
         if not amplifier:
             self.bot.reply_to(message, "Экипированный амплификатор не найден!")
             return
@@ -152,18 +152,18 @@ class AmplifierSystem:
         for key, value in amplifier["stats"].items():
             match key:
                 case "ATK":
-                    user_stats["base"][key] -= int(value)
+                    player_stats["base"][key] -= int(value)
                 case "CRIT.DMG" | "PEN":
-                    user_stats["modifiers"]["flat"][key] = user_stats["modifiers"]["flat"].get(key, 0) - value
+                    player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) - value
                 case _:
-                    user_stats["modifiers"]["percent"][key] = user_stats["modifiers"]["percent"].get(key, 0) - value
+                    player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) - value
 
-        user_data["amplifiers"]["equipped"] = None
+        player_data["amplifiers"]["equipped"] = None
 
-        self.user.update({
-            "stats": user_data["stats"],
-            "amplifiers": user_data["amplifiers"]
-        }, self.UserQuery.user_id == message.from_user.id)
+        self.players.update({
+            "stats": player_data["stats"],
+            "amplifiers": player_data["amplifiers"]
+        }, self.PlayerQuery.uid == message.from_user.id)
 
         self.bot.reply_to(message, f"Амплификатор {amplifier['name']} успешно снят!")
 
@@ -198,18 +198,18 @@ class AmplifierSystem:
         return f"⚔️ Атака +{atk}{extra_text}"
 
     def open_inventory(self, message):
-        user_data = self.user.get(self.UserQuery.user_id == message.from_user.id)
-        if not user_data:
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
 
-        owned_amplifiers = user_data["amplifiers"].get("owned", [])
+        owned_amplifiers = player_data["amplifiers"].get("owned", [])
         if not owned_amplifiers:
             self.bot.reply_to(message, "Ваш инвентарь экипировки пуст!")
             return
 
         inventory_text = "_🎒 Ваш инвентарь 🎒_\n\n" + "\n".join(
-            [f"*{amplifier}*" + (" (экипирован)" if amplifier == user_data["amplifiers"]["equipped"] else "") + f"\n{self.format_amplifier_stats(amplifier)}" for
+            [f"*{amplifier}*" + (" (экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "") + f"\n{self.format_amplifier_stats(amplifier)}" for
              amplifier in
              owned_amplifiers])
 
@@ -248,9 +248,9 @@ class AmplifierSystem:
         amplifier = self.amplifiers.get(doc_id=amp_id)
         amplifier_name = amplifier["name"]
 
-        user = self.user.get(self.UserQuery.user_id == call.from_user.id)
+        player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
-        if not user:
+        if not player:
             self.bot.answer_callback_query(
                 call.id,
                 "У вас нет профиля! Создайте его с помощью команды /createprofile",
@@ -258,7 +258,7 @@ class AmplifierSystem:
             )
             return
 
-        if user["internot"]["coins"] < amplifier["cost"]:
+        if player["internot"]["coins"] < amplifier["cost"]:
             self.bot.answer_callback_query(
                 call.id,
                 "У вас недостаточно монеток для покупки этого амплификатора.",
@@ -266,15 +266,15 @@ class AmplifierSystem:
             )
             return
 
-        user["internot"]["coins"] -= amplifier["cost"]
-        if "owned" not in user["amplifiers"]:
-            user["amplifiers"]["owned"] = []
-        user["amplifiers"]["owned"].append(amplifier_name)
+        player["internot"]["coins"] -= amplifier["cost"]
+        if "owned" not in player["amplifiers"]:
+            player["amplifiers"]["owned"] = []
+        player["amplifiers"]["owned"].append(amplifier_name)
 
-        self.user.update({
-            "internot": user["internot"],
-            "amplifiers": user["amplifiers"]
-        }, self.UserQuery.user_id == call.from_user.id)
+        self.players.update({
+            "internot": player["internot"],
+            "amplifiers": player["amplifiers"]
+        }, self.PlayerQuery.uid == call.from_user.id)
 
         self.bot.answer_callback_query(call.id, f"Вы успешно купили амплификатор {amplifier_name}!", show_alert=True)
 

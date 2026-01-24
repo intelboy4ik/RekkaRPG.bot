@@ -2,10 +2,10 @@ from config import is_admin
 
 
 class ProfileSystem:
-    def __init__(self, bot, users, userquery, stats_system=None):
+    def __init__(self, bot, players, playerquery, stats_system=None):
         self.bot = bot
-        self.users = users
-        self.UserQuery = userquery
+        self.players = players
+        self.PlayerQuery = playerquery
         self.stats_system = stats_system
 
     def register_handlers(self):
@@ -15,9 +15,9 @@ class ProfileSystem:
         self.bot.message_handler(commands=["viewprofileid"])(self.view_profile_id)
 
     def create_profile_command(self, message):
-        if not self.users.get(self.UserQuery.user_id == message.from_user.id):
-            self.users.insert({
-                "user_id": message.from_user.id,
+        if not self.players.get(self.PlayerQuery.uid == message.from_user.id):
+            self.players.insert({
+                "uid": message.from_user.id,
                 "username": f"@{message.from_user.username}",
                 "role": "не задана",
                 "internot": {
@@ -55,20 +55,20 @@ class ProfileSystem:
             self.bot.reply_to(message, "У вас уже есть профиль!")
 
     def my_profile_command(self, message):
-        if not self.users.get(self.UserQuery.user_id == message.from_user.id):
+        if not self.players.get(self.PlayerQuery.uid == message.from_user.id):
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
-        user_data = self.users.get(self.UserQuery.user_id == message.from_user.id)
-        stats = self.stats_system.recalc_stats(user_data)
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        stats = self.stats_system.recalc_stats(player_data)
         if stats["HP"] != 0:
             self.bot.reply_to(
                 message,
-                f"Игрок | {user_data['username']}"
+                f"Игрок | {player_data['username']}"
                 f"\n\n"
-                f"Роль • {user_data['role']}\n"
-                f"Ур. Интернота • {user_data['internot']['lv']}\n"
-                f"Амплификатор • {user_data['amplifiers']['equipped'] if user_data['amplifiers']['equipped'] else 'пусто'}\n"
-                f"Баланс • {user_data['internot']['coins']} монеток"
+                f"Роль • {player_data['role']}\n"
+                f"Ур. Интернота • {player_data['internot']['lv']}\n"
+                f"Амплификатор • {player_data['amplifiers']['equipped'] if player_data['amplifiers']['equipped'] else 'пусто'}\n"
+                f"Баланс • {player_data['internot']['coins']} монеток"
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
@@ -78,7 +78,7 @@ class ProfileSystem:
             return
         self.bot.reply_to(
             message,
-            f"Игрок | {user_data['username']}"
+            f"Игрок | {player_data['username']}"
             f"\n\n"
             f"Характеристики ещё не заданы. Воспользуйтесь командой /rollstats чтобы их сгенерировать."
         )
@@ -89,11 +89,11 @@ class ProfileSystem:
             return
         try:
             parts = message.text.split(" ")
-            user_id = int(parts[1])
-            if self.users.remove(self.UserQuery.user_id == user_id):
-                self.bot.reply_to(message, f"Профиль с ID {user_id} успешно удален.")
+            uid = int(parts[1])
+            if self.players.remove(self.PlayerQuery.uid == uid):
+                self.bot.reply_to(message, f"Профиль с ID {uid} успешно удален.")
             else:
-                self.bot.reply_to(message, f"Профиль с ID {user_id} не найден.")
+                self.bot.reply_to(message, f"Профиль с ID {uid} не найден.")
         except (IndexError, ValueError):
             self.bot.reply_to(message, "Пожалуйста, введите корректный числовой ID.")
 
@@ -104,12 +104,12 @@ class ProfileSystem:
         try:
             parts = message.text.split(" ")
             username = parts[1]
-            user = self.users.get(self.UserQuery.username == username)
-            if not user:
+            player = self.players.get(self.PlayerQuery.username == username)
+            if not player:
                 self.bot.reply_to(message, "Игрок не найден.")
                 return
             self.bot.reply_to(
-                message, f"ID | {user['user_id']}\nИгрок | {user['username']}"
+                message, f"ID | {player['uid']}\nИгрок | {player['username']}"
             )
         except (IndexError, ValueError):
             self.bot.reply_to(message, "Пожалуйста, используйте команду в формате: /viewid @username")

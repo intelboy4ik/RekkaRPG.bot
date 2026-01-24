@@ -1,30 +1,33 @@
 import random
 
+from config import MIN_HP_PULL, MAX_HP_PULL, MIN_DEF_PULL, MAX_DEF_PULL, MIN_ATK_PULL, MAX_ATK_PULL, MIN_CRIT_DMG_PULL, \
+    MAX_CRIT_DMG_PULL, BASE_ATK, BASE_DEF, BASE_HP, BASE_CRIT_DMG
+
 
 class StatsSystem:
-    def __init__(self, bot, users, userquery):
+    def __init__(self, bot, players, playerquery):
         self.bot = bot
-        self.users = users
-        self.UserQuery = userquery
+        self.players = players
+        self.PlayerQuery = playerquery
 
     def register_handlers(self):
         self.bot.message_handler(commands=['rollstats'])(self.generate_stats)
 
     def generate_stats(self, message):
-        user_data = self.users.get(self.UserQuery.user_id == message.from_user.id)
-        if not user_data:
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
 
-        if user_data["stats"]["base"]["HP"] != 0:
+        if player_data["stats"]["base"]["HP"] != 0:
             self.bot.reply_to(message, "Вы уже сгенерировали свои характеристики!")
             return
 
         raw_stats = {
-            "HP": sum(sorted([random.randint(600, 2400) for _ in range(4)])[1:]) + 800,
-            "DEF": sum(sorted([random.randint(15, 35) for _ in range(4)])[1:]) + 30,
-            "ATK": sum(sorted([random.randint(85, 185) for _ in range(4)])[1:]) + 200,
-            "CRIT.DMG": sum(sorted(random.randint(15, 60) for _ in range(4))[1:]) + 110,
+            "HP": sum(sorted([random.randint(MIN_HP_PULL, MAX_HP_PULL) for _ in range(4)])[1:]) + BASE_HP,
+            "DEF": sum(sorted([random.randint(MIN_DEF_PULL, MAX_DEF_PULL) for _ in range(4)])[1:]) + BASE_DEF,
+            "ATK": sum(sorted([random.randint(MIN_ATK_PULL, MAX_ATK_PULL) for _ in range(4)])[1:]) + BASE_ATK,
+            "CRIT.DMG": sum(sorted(random.randint(MIN_CRIT_DMG_PULL, MAX_CRIT_DMG_PULL) for _ in range(4))[1:]) + BASE_CRIT_DMG,
             "PEN": 0,
         }
 
@@ -35,13 +38,13 @@ class StatsSystem:
             "💥 Крит. урон": f"{raw_stats['CRIT.DMG']}%",
         }
 
-        user_data['stats']['base'] = raw_stats
+        player_data['stats']['base'] = raw_stats
 
-        self.users.update({
-            "stats": user_data["stats"]
-        }, self.UserQuery.user_id == message.from_user.id)
+        self.players.update({
+            "stats": player_data["stats"]
+        }, self.PlayerQuery.uid == message.from_user.id)
 
-        self.recalc_stats(user_data)
+        self.recalc_stats(player_data)
 
         self.bot.send_dice(message.chat.id, message_thread_id=message.message_thread_id)
         self.bot.reply_to(
@@ -51,11 +54,12 @@ class StatsSystem:
             )
         )
 
-    def recalc_stats(self, user_data):
+    @staticmethod
+    def recalc_stats(player_data):
         visible = {}
-        base = user_data["stats"]["base"]
-        flat = user_data["stats"]["modifiers"]["flat"]
-        percent = user_data["stats"]["modifiers"]["percent"]
+        base = player_data["stats"]["base"]
+        flat = player_data["stats"]["modifiers"]["flat"]
+        percent = player_data["stats"]["modifiers"]["percent"]
 
         for key, base_value in base.items():
             flat_bonus = flat.get(key, 0)
