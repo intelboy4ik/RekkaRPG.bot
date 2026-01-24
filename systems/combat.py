@@ -127,7 +127,7 @@ class CombatSystem:
             self.bot.send_message(
                 call.message.chat.id,
                 "Игрок отказался от боя.",
-                message_thread_id=call.message.message_thread_id
+                    message_thread_id=call.message.message_thread_id
             )
 
     """

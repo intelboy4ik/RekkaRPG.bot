@@ -23,6 +23,9 @@ MIN_DMG_MULTIPLIER = int(os.getenv("MIN_DMG_MULTIPLIER"))
 MAX_DMG_MULTIPLIER = int(os.getenv("MAX_DMG_MULTIPLIER"))
 BASE_DEFENSE = int(os.getenv("BASE_DEFENSE"))
 
+# Equipment consts
+ENGINES_POSSIBLE_STATS = list(map(str, os.getenv("ENGINES_POSSIBLE_STATS").split(",")))
+
 # Admin check function
 def is_admin(user_id):
     return user_id in ADMINS_IDS

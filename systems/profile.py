@@ -72,7 +72,7 @@ class ProfileSystem:
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
-                f"🗡️ Атака: {stats['ATK']}\n"
+                f"⚔️ Атака: {stats['ATK']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%"
             )
             return

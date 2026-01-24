@@ -16,10 +16,14 @@ from commands.base import BaseCommands
 
 # Initialize database
 db = TinyDB("database.json", storage=JSONStorage)
+
+# Tables
 users = db.table("users")
-engines = db.table("amplifiers")
+amplifiers = db.table("amplifiers")
+
+# Queries
 UserQuery = Query()
-EngineQuery = Query()
+AmplifierQuery = Query()
 
 # Initialize bot
 token = config.TOKEN
@@ -30,7 +34,7 @@ bot = telebot.TeleBot(token=token)
 stats_system = StatsSystem(bot, users, UserQuery)
 profile_system = ProfileSystem(bot, users, UserQuery, stats_system)
 internot_system = InternotSystem(bot, users, UserQuery, stats_system)
-amplifier_system = AmplifierSystem(bot, engines, EngineQuery, users, UserQuery, stats_system)
+amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, users, UserQuery, stats_system)
 fight_system = CombatSystem(bot, users, UserQuery, internot_system, stats_system)
 
 # Commands classes
@@ -50,7 +54,6 @@ amplifier_system.register_handlers()
 
 # Base commands
 base_commands.register_handlers()
-
 
 # Roll commands
 stats_system.register_handlers()
