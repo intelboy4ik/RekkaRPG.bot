@@ -25,6 +25,7 @@ class ProfileSystem:
                     "coins": 0,
                     "posts": 0,
                     "duel_wins": 0,
+                    "last_daily": None
                 },
                 "stats": {
                     "base":
@@ -44,6 +45,14 @@ class ProfileSystem:
                 "amplifiers": {
                     "owned": [],
                     "equipped": None
+                },
+                "signals": {
+                    "videotapes": 45,
+                    "searched": 0,
+                    "guarantee": {
+                        "a-tier": 10,
+                        "s-tier": 90
+                    },
                 }
             })
             self.bot.reply_to(
@@ -55,10 +64,10 @@ class ProfileSystem:
             self.bot.reply_to(message, "У вас уже есть профиль!")
 
     def my_profile_command(self, message):
-        if not self.players.get(self.PlayerQuery.uid == message.from_user.id):
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
-        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
         stats = self.stats_system.recalc_stats(player_data)
         if stats["HP"] != 0:
             self.bot.reply_to(

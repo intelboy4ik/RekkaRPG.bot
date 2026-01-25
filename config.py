@@ -10,6 +10,7 @@ ADMINS_IDS = list(map(int, os.getenv("ADMINS_IDS").split(",")))
 
 # Telegram consts
 MAIN_GROUP_ID = int(os.getenv("MAIN_GROUP_ID"))
+INTERNOT_THREAD_ID = int(os.getenv("INTERNOT_THREAD_ID"))
 SHIYUI_THREAD_ID = int(os.getenv("SHIYUI_THREAD_ID"))
 ROLEPLAY_THREAD_ID = int(os.getenv("ROLEPLAY_THREAD_ID"))
 INTERNOT_UP_THREAD_ID = int(os.getenv("INTERNOT_UP_THREAD_ID"))

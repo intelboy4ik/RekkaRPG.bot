@@ -1,5 +1,3 @@
-from telebot import types
-
 from config import is_admin, AMPLIFIER_POSSIBLE_STATS
 
 
@@ -18,9 +16,6 @@ class AmplifierSystem:
         self.bot.message_handler(commands=["equip"])(self.equip_amplifier)
         self.bot.message_handler(commands=["unequip"])(self.unequip_amplifier)
         self.bot.message_handler(commands=["inventory"])(self.open_inventory)
-        self.bot.message_handler(commands=["store"])(self.open_amplifier_store)
-        self.bot.callback_query_handler(func=lambda call: call.data.startswith("buy_amplifier_"))(
-            self.buy_amplifier_callback)
 
     def add_amplifier(self, message):
         if not is_admin(message.from_user.id):
@@ -28,10 +23,12 @@ class AmplifierSystem:
             return
 
         parts = message.text.split(" ")
-        if len(parts) != 6:
+        if len(parts) != 7:
             self.bot.reply_to(
                 message,
-                "Неверный формат команды! Используйте: /addamplifier <название> <атака> <характеристика> <значение> <цена>"
+                "Неверный формат команды!"
+                "\n\n"
+                "Используйте: /addamplifier <название> <атака> <характеристика> <значение> <тир> <цена>"
             )
             return
 
@@ -39,22 +36,26 @@ class AmplifierSystem:
         attack = int(parts[2])
 
         stat = parts[3].upper()
-        if stat not in ENGINES_POSSIBLE_STATS:
+        if stat not in AMPLIFIER_POSSIBLE_STATS:
             self.bot.reply_to(
                 message,
-                f"Неверная характеристика! Допустимые характеристики: {', '.join(ENGINES_POSSIBLE_STATS)}"
+                f"Неверная характеристика! Допустимые характеристики: {', '.join(AMPLIFIER_POSSIBLE_STATS)}"
             )
             return
         stat_value = int(parts[4])
 
-        cost = int(parts[5])
+        tier = parts[5].upper()
+        if tier not in ["B", "A", "S"]:
+            self.bot.reply_to(
+                message,
+                "Неверный тир! Допустимые тиры: B, A, S"
+            )
+            return
+
+        cost = int(parts[6])
 
         if self.amplifiers.get(self.AmplifierQuery.name == name):
             self.bot.reply_to(message, "Амплификатор с таким именем уже существует!")
-            return
-
-        if len(self.amplifiers) >= 12:
-            self.bot.reply_to(message, "Достигнуто максимальное количество амплификаторов!")
             return
 
         amplifier_stats = {
@@ -64,7 +65,8 @@ class AmplifierSystem:
         self.amplifiers.insert({
             "name": name,
             "stats": amplifier_stats,
-            "cost": cost
+            "cost": cost,
+            "tier": tier
         })
         self.bot.reply_to(message, f"Амплификатор {name} успешно добавлен.")
 
@@ -99,10 +101,6 @@ class AmplifierSystem:
 
         player_stats = player_data["stats"]
 
-        if player_data["amplifiers"]["equipped"]:
-            self.bot.reply_to(message, "У вас уже есть экипированный амплификатор!")
-            return
-
         parts = message.text.split(" ")
 
         amplifier = self.amplifiers.get(self.AmplifierQuery.name == " ".join(parts[1:]))
@@ -116,9 +114,7 @@ class AmplifierSystem:
 
         for key, value in amplifier["stats"].items():
             match key:
-                case "ATK":
-                    player_stats["base"][key] += value
-                case "CRIT.DMG" | "PEN":
+                case "CRIT.DMG" | "PEN" | "ATK":
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) + value
                 case _:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) + value
@@ -151,9 +147,7 @@ class AmplifierSystem:
 
         for key, value in amplifier["stats"].items():
             match key:
-                case "ATK":
-                    player_stats["base"][key] -= int(value)
-                case "CRIT.DMG" | "PEN":
+                case "CRIT.DMG" | "PEN" | "ATK":
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) - value
                 case _:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) - value
@@ -205,13 +199,17 @@ class AmplifierSystem:
 
         owned_amplifiers = player_data["amplifiers"].get("owned", [])
         if not owned_amplifiers:
-            self.bot.reply_to(message, "Ваш инвентарь экипировки пуст!")
+            self.bot.reply_to(message, "Ваш инвентарь пуст!")
             return
 
         inventory_text = "_🎒 Ваш инвентарь 🎒_\n\n" + "\n".join(
-            [f"*{amplifier}*" + (" (экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "") + f"\n{self.format_amplifier_stats(amplifier)}" for
-             amplifier in
-             owned_amplifiers])
+            [
+                f"*{amplifier}*"
+                + ("(экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "")
+                + f"\n{self.format_amplifier_stats(amplifier)}\n"
+                for amplifier in owned_amplifiers
+            ]
+        )
 
         self.bot.send_message(
             message.chat.id,
@@ -219,63 +217,3 @@ class AmplifierSystem:
             message_thread_id=message.message_thread_id,
             parse_mode="Markdown"
         )
-
-    def open_amplifier_store(self, message):
-        markup = types.InlineKeyboardMarkup()
-        for amplifier in self.amplifiers.all():
-            button = types.InlineKeyboardButton(
-                text=f"{amplifier['name']} — 💰{amplifier['cost']}",
-                callback_data=f"buy_amplifier_{amplifier.doc_id}"
-            )
-            markup.add(button)
-
-        amplifier_list = "\n\n".join([
-            f"*{amplifier['name']}*\n{self.format_amplifier_stats(amplifier["name"])}\n💰 Цена: {amplifier['cost']}"
-            for amplifier in self.amplifiers.all()
-        ])
-
-        self.bot.send_message(
-            message.chat.id,
-            f"_🛍️ Магазин амплификаторов 🛍️_\n\n{amplifier_list}",
-            reply_markup=markup,
-            message_thread_id=message.message_thread_id,
-            parse_mode="Markdown"
-        )
-
-    def buy_amplifier_callback(self, call):
-        amp_id = call.data.split("_")[2]
-
-        amplifier = self.amplifiers.get(doc_id=amp_id)
-        amplifier_name = amplifier["name"]
-
-        player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
-
-        if not player:
-            self.bot.answer_callback_query(
-                call.id,
-                "У вас нет профиля! Создайте его с помощью команды /createprofile",
-                show_alert=True
-            )
-            return
-
-        if player["internot"]["coins"] < amplifier["cost"]:
-            self.bot.answer_callback_query(
-                call.id,
-                "У вас недостаточно монеток для покупки этого амплификатора.",
-                show_alert=True
-            )
-            return
-
-        player["internot"]["coins"] -= amplifier["cost"]
-        if "owned" not in player["amplifiers"]:
-            player["amplifiers"]["owned"] = []
-        player["amplifiers"]["owned"].append(amplifier_name)
-
-        self.players.update({
-            "internot": player["internot"],
-            "amplifiers": player["amplifiers"]
-        }, self.PlayerQuery.uid == call.from_user.id)
-
-        self.bot.answer_callback_query(call.id, f"Вы успешно купили амплификатор {amplifier_name}!", show_alert=True)
-
-

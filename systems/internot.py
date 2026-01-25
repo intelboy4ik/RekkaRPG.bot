@@ -1,6 +1,7 @@
 import random
+from datetime import date
 
-from config import MAIN_GROUP_ID, INTERNOT_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV
+from config import MAIN_GROUP_ID, INTERNOT_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV, INTERNOT_THREAD_ID
 
 
 class InternotSystem:
@@ -14,6 +15,7 @@ class InternotSystem:
         self.bot.message_handler(
             func=lambda message: message.message_thread_id == ROLEPLAY_THREAD_ID
         )(self.posts_counter)
+        self.bot.message_handler(commands=['daily'])(self.daily_reward)
 
     def posts_counter(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
@@ -30,6 +32,30 @@ class InternotSystem:
             if self.up_internot_lv(player_data):
                 self.send_congrats_message(player_data, "за активность в ролевом чате")
 
+    def daily_reward(self, message):
+        if message.message_thread_id != INTERNOT_THREAD_ID:
+            self.bot.reply_to(message, "Эту команду можно использовать только в чате Интернота.")
+            return
+
+        player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
+        if not player_data:
+            self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
+            return
+
+        today = date.today().isoformat()
+        last_daily = player_data["internot"].get("last_daily")
+
+        if last_daily == today:
+            self.bot.reply_to(message, "Вы уже получили ежедневную награду сегодня! Приходите завтра.")
+            return
+
+        coins_bonus = random.randint(120, 600)
+        player_data["internot"]["coins"] += coins_bonus
+        player_data["internot"]["last_daily"] = today
+
+        self.players.update({"internot": player_data["internot"]}, self.PlayerQuery.uid == player_data["uid"])
+        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{coins_bonus} монеток")
+
     def up_internot_lv(self, player_data) -> bool:
         internot = player_data["internot"]
 
@@ -44,7 +70,7 @@ class InternotSystem:
     def send_congrats_message(self, player_data, reason):
         self.bot.send_message(
             MAIN_GROUP_ID,
-            f"Поздравляем! {player_data['username']} получил повышение уровня Интернота {reason}!🎉",
+            f"Поздравляем! Уровень Интернота {player_data['username']} повышен {reason}!🎉",
             message_thread_id=INTERNOT_UP_THREAD_ID
         )
 
@@ -57,11 +83,10 @@ class InternotSystem:
             "DEF": random.randint(25, 45),
             "ATK": random.randint(25, 45),
             "CRIT.DMG": random.randint(1, 3),
-            "P.DMG": 2,
+            "P.DMG": random.randint(1, 2),
         }
 
         for stat, bonus in bonuses.items():
             player_data["stats"]["base"][stat] = player_data["stats"]["base"].get(stat, 0) + bonus
 
         self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
-

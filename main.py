@@ -11,6 +11,8 @@ from systems.internot import InternotSystem
 from systems.duel import DuelSystem
 from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
+from systems.store import StoreSystem
+from systems.signal import SignalSystem
 
 from commands.base import BaseCommands
 
@@ -35,7 +37,9 @@ stats_system = StatsSystem(bot, players, PlayerQuery)
 profile_system = ProfileSystem(bot, players, PlayerQuery, stats_system)
 internot_system = InternotSystem(bot, players, PlayerQuery, stats_system)
 amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
-fight_system = DuelSystem(bot, players, PlayerQuery, internot_system, stats_system)
+duel_system = DuelSystem(bot, players, PlayerQuery, internot_system, stats_system)
+store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifier_system)
+signal_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
 
 # Commands classes
 base_commands = BaseCommands(bot, players, PlayerQuery)
@@ -44,13 +48,19 @@ base_commands = BaseCommands(bot, players, PlayerQuery)
 profile_system.register_handlers()
 
 # Fight system
-fight_system.register_handlers()
+duel_system.register_handlers()
 
 # Internot system
 internot_system.register_handlers()
 
 # Amplifier system
 amplifier_system.register_handlers()
+
+#Store system
+store_system.register_handlers()
+
+#Signal system
+signal_system.register_handlers()
 
 # Base commands
 base_commands.register_handlers()
