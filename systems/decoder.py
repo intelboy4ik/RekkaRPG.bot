@@ -3,7 +3,7 @@ import random
 from telebot import types
 
 
-class SignalSystem:
+class DecoderSystem:
     def __init__(self, bot, players, playerquery, amplifiers, amplifierquery):
         self.bot = bot
         self.players = players
@@ -15,21 +15,21 @@ class SignalSystem:
         self.s_tier_amplifiers = self.amplifiers.search(self.AmplifierQuery.tier == "S")
 
     def register_handlers(self):
-        self.bot.message_handler(commands=["opensignals"])(self.open_signal)
+        self.bot.message_handler(commands=["opendecoder"])(self.open_signal)
         self.bot.callback_query_handler(
-            func=lambda call: call.data in ["search_signal_x1", "search_signal_x10"]
-        )(self.search_signal_callback)
-        self.bot.message_handler(commands=["infosignals"])(self.info)
+            func=lambda call: call.data in ["try_decode_x1", "try_decode_x10"]
+        )(self.try_decode_callback)
+        self.bot.message_handler(commands=["infodecoder"])(self.info)
 
     def open_signal(self, message):
         markup = types.InlineKeyboardMarkup()
-        button_search_x1 = types.InlineKeyboardButton("🔍 Искать (1x)", callback_data="search_signal_x1")
-        button_search_x10 = types.InlineKeyboardButton("🔍 Искать (10x)", callback_data="search_signal_x10")
+        button_search_x1 = types.InlineKeyboardButton("🔍 Расшифровать (1x)", callback_data="try_decode_x1")
+        button_search_x10 = types.InlineKeyboardButton("🔍 Расшифровать (10x)", callback_data="try_decode_x10")
         markup.row(button_search_x1, button_search_x10)
-        self.bot.reply_to(message, "_📺 Открыт поиск сигналов._\n\n**Выберите действие:**", reply_markup=markup,
+        self.bot.reply_to(message, "_📺 Открыта дешифровка записей._\n\n**Выберите действие:**", reply_markup=markup,
                           parse_mode="Markdown")
 
-    def search_signal_callback(self, call):
+    def try_decode_callback(self, call):
         player_data = self.players.get(self.PlayerQuery.uid == call.from_user.id)
         if not player_data:
             self.bot.answer_callback_query(
@@ -41,18 +41,18 @@ class SignalSystem:
 
         result = []
 
-        if call.data == "search_signal_x1":
-            if player_data["signals"]["videotapes"] < 1:
+        if call.data == "try_decode_x1":
+            if player_data["decoder"]["videotapes"] < 1:
                 self.bot.answer_callback_query(
                     call.id,
-                    "У вас недостаточно кассет для поиска сигнала.",
+                    "У вас недостаточно видеокассет для дешифровки.",
                     show_alert=True,
                 )
                 return
-            result.append(self.calc_search_res(call))
+            result.append(self.calc_decode_res(call))
             self.bot.send_message(
                 call.message.chat.id,
-                "_🔍 Вы провели поиск сигнала с использованием 1 видеокассеты._"
+                "_🔍 Вы провели расшифровку с использованием 1 видеокассеты._"
                 "\n\n"
                 "*Результаты*"
                 "\n" +
@@ -64,15 +64,15 @@ class SignalSystem:
             )
             return
 
-        if player_data["signals"]["videotapes"] < 10:
+        if player_data["decoder"]["videotapes"] < 10:
             self.bot.answer_callback_query(
                 call.id,
-                "У вас недостаточно видеокассет для поиска сигнала.",
+                "У вас недостаточно видеокассет для дешифровки.",
                 show_alert=True,
             )
             return
         for _ in range(10):
-            result.append(self.calc_search_res(call))
+            result.append(self.calc_decode_res(call))
         self.bot.send_message(
             call.message.chat.id,
             "_🔍 Вы провели поиск сигнала с использованием 10 видеокассет._"
@@ -90,15 +90,13 @@ class SignalSystem:
             message,
             f"*Приветствуем в справочной Интернота!*"
             f"\n\n"
-            f"В этой статье мы расскажем о системе поиска сигналов и видеокассетах."
+            f"В этой статье мы расскажем о системе дешифровки записей и видеокассетах."
             f"\n\n"
-            f"• *Видеокассеты* — это специальный ресурс, необходимый для поиска сигналов."
-            f"\n"
-            f"Каждая попытка поиска сигнала требует определённого количества видеокассет."
+            f"• *Видеокассеты* — это специальный ресурс, необходимый для дешифровки записей."
             f"\n\n"
-            f"• *Поиск сигналов* позволяет игрокам находить различные амплификаторы, которые могут улучшить их характеристики в бою."
+            f"• *Дешифровка записей* позволяет игрокам находить различные амплификаторы, которые могут улучшить их характеристики в бою."
             f"\n"
-            f"При поиске сигнала вы можете получить амплификаторы трёх уровней редкости: 🔹B, 🔸A и 🔶S."
+            f"При расшифровке записей вы можете получить амплификаторы трёх уровней редкости: 🔹B, 🔸A и 🔶S."
             f"\n\n"
             f"• *Каковы шансы получения амплификаторов?*"
             f"\n"
@@ -110,49 +108,49 @@ class SignalSystem:
             f"\n\n"
             f"• *Система гарантий:*"
             f"\n"
-            f"Амплификаторы тиров A и S имеют систему гарантий, которая увеличивает ваши шансы на получение этих амплификаторов при последующих поисках."
+            f"Амплификаторы тиров A и S имеют систему гарантий, которая увеличивает ваши шансы на получение этих амплификаторов при последующих дешифровках."
             f"\n"
             f"Так, амплификатор тира A гарантированно выпадет в течении **10 поисков**, а амплификатор тира S — в течении **90 поисков**."
             f"\n\n"
             f"• *Повторное получение*"
-            f"При поиске сигнала, вы можете получить амплификатор, который уже есть в вашем инвентаре."
+            f"При дешифровке, вы можете получить амплификатор, который уже есть в вашем инвентаре."
             f"Если это произойдёт, вы получите компенсацию в виде видеокассет или монеток."
             f"Амплификаторы тира B компенсируются **монетками**, в то время как амплификаторы тиров A и S компенсируются **видеокассетами**."
             ,
             parse_mode="Markdown"
         )
 
-    def calc_search_res(self, call):
+    def calc_decode_res(self, call):
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
-        player["signals"]["videotapes"] -= 1
-        player["signals"]["searched"] += 1
+        player["decoder"]["videotapes"] -= 1
+        player["decoder"]["searched"] += 1
 
-        player["signals"]["guarantee"]["a-tier"] -= 1
-        player["signals"]["guarantee"]["s-tier"] -= 1
+        player["decoder"]["guarantee"]["a-tier"] -= 1
+        player["decoder"]["guarantee"]["s-tier"] -= 1
 
         dice = random.randint(1, 1000)
 
-        if dice <= 12 or player["signals"]["guarantee"]["s-tier"] <= 0:
+        if dice <= 12 or player["decoder"]["guarantee"]["s-tier"] <= 0:
             amplifier = random.choice(self.s_tier_amplifiers)
 
             if amplifier["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amplifier["name"])
             else:
-                player["signals"]["videotapes"] += 5
+                player["decoder"]["videotapes"] += 5
 
-            player["signals"]["guarantee"]["a-tier"] = 10
-            player["signals"]["guarantee"]["s-tier"] = 90
+            player["decoder"]["guarantee"]["a-tier"] = 10
+            player["decoder"]["guarantee"]["s-tier"] = 90
 
-        elif dice <= 140 or player["signals"]["guarantee"]["a-tier"] <= 0:
+        elif dice <= 140 or player["decoder"]["guarantee"]["a-tier"] <= 0:
             amplifier = random.choice(self.a_tier_amplifiers)
 
             if amplifier["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amplifier["name"])
             else:
-                player["signals"]["videotapes"] += 2
+                player["decoder"]["videotapes"] += 2
 
-            player["signals"]["guarantee"]["a-tier"] = 10
+            player["decoder"]["guarantee"]["a-tier"] = 10
 
         else:
             amplifier = random.choice(self.b_tier_amplifiers)
@@ -164,7 +162,7 @@ class SignalSystem:
 
         self.players.update(
             {
-                "signals": player["signals"],
+                "decoder": player["decoder"],
                 "amplifiers": player["amplifiers"],
                 "internot": player["internot"],
             },

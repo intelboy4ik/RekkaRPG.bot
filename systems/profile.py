@@ -46,7 +46,7 @@ class ProfileSystem:
                     "owned": [],
                     "equipped": None
                 },
-                "signals": {
+                "decoder": {
                     "videotapes": 45,
                     "searched": 0,
                     "guarantee": {

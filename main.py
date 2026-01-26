@@ -12,7 +12,7 @@ from systems.duel import DuelSystem
 from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
 from systems.store import StoreSystem
-from systems.signal import SignalSystem
+from systems.decoder import DecoderSystem
 
 from commands.base import BaseCommands
 
@@ -39,7 +39,7 @@ internot_system = InternotSystem(bot, players, PlayerQuery, stats_system)
 amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
 duel_system = DuelSystem(bot, players, PlayerQuery, internot_system, stats_system)
 store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifier_system)
-signal_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
+decoder_system = DecoderSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
 
 # Commands classes
 base_commands = BaseCommands(bot, players, PlayerQuery)
@@ -60,7 +60,7 @@ amplifier_system.register_handlers()
 store_system.register_handlers()
 
 #Signal system
-signal_system.register_handlers()
+decoder_system.register_handlers()
 
 # Base commands
 base_commands.register_handlers()

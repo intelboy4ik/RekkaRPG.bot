@@ -185,11 +185,11 @@ class AmplifierSystem:
         if extra_stat and extra_value:
             stat_name = stat_display.get(extra_stat, extra_stat)
             if extra_stat not in ('ATK', 'PEN'):
-                extra_text = f" • {stat_name} +{extra_value}%"
+                extra_text = f"{stat_name} +{extra_value}%"
             else:
-                extra_text = f" • {stat_name} +{extra_value}"
+                extra_text = f"{stat_name} +{extra_value}"
 
-        return f"⚔️ Атака +{atk}{extra_text}"
+        return f"⚔️ Атака +{atk}\n{extra_text}"
 
     def open_inventory(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
@@ -202,7 +202,7 @@ class AmplifierSystem:
             self.bot.reply_to(message, "Ваш инвентарь пуст!")
             return
 
-        inventory_text = "_🎒 Ваш инвентарь 🎒_\n\n" + "\n".join(
+        inventory_text = "_🎒 Ваш инвентарь_\n\n" + "\n".join(
             [
                 f"*{amplifier}*"
                 + ("(экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "")
