@@ -121,11 +121,11 @@ class StoreSystem:
             return
 
         player["internot"]["coins"] -= cost
-        player["signals"]["videotapes"] += quantity
+        player["decoder"]["videotapes"] += quantity
 
         self.players.update({
             "internot": player["internot"],
-            "signals": player["signals"]
+            "decoder": player["decoder"]
         }, self.PlayerQuery.uid == call.from_user.id)
 
         self.bot.answer_callback_query(

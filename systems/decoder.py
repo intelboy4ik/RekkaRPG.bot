@@ -23,8 +23,8 @@ class DecoderSystem:
 
     def open_signal(self, message):
         markup = types.InlineKeyboardMarkup()
-        button_search_x1 = types.InlineKeyboardButton("🔍 Расшифровать (1x)", callback_data="try_decode_x1")
-        button_search_x10 = types.InlineKeyboardButton("🔍 Расшифровать (10x)", callback_data="try_decode_x10")
+        button_search_x1 = types.InlineKeyboardButton("🔍 Попытка (1x)", callback_data="try_decode_x1")
+        button_search_x10 = types.InlineKeyboardButton("🔍 Попытка (10x)", callback_data="try_decode_x10")
         markup.row(button_search_x1, button_search_x10)
         self.bot.reply_to(message, "_📺 Открыта дешифровка записей._\n\n**Выберите действие:**", reply_markup=markup,
                           parse_mode="Markdown")
