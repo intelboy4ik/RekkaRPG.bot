@@ -64,7 +64,7 @@ class InternotSystem:
 
         internot["lv"] += 1
         self.players.update({"internot": internot}, self.PlayerQuery.uid == player_data["uid"])
-        self._upgrade_player_stats(player_data, internot["lv"])
+        self.stats_system.give_point_to_player(player_data, internot["lv"])
         return True
 
     def send_congrats_message(self, player_data, reason):
@@ -73,20 +73,3 @@ class InternotSystem:
             f"Поздравляем! Уровень Интернота {player_data['username']} повышен {reason}!🎉",
             message_thread_id=INTERNOT_UP_THREAD_ID
         )
-
-    def _upgrade_player_stats(self, player_data, new_lv):
-        if new_lv % 5 != 0:
-            return
-
-        bonuses = {
-            "HP": random.randint(75, 135),
-            "DEF": random.randint(25, 45),
-            "ATK": random.randint(25, 45),
-            "CRIT.DMG": random.randint(1, 3),
-            "P.DMG": random.randint(1, 2),
-        }
-
-        for stat, bonus in bonuses.items():
-            player_data["stats"]["base"][stat] = player_data["stats"]["base"].get(stat, 0) + bonus
-
-        self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])

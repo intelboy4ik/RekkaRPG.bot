@@ -1,5 +1,7 @@
 import random
 
+from telebot import types
+
 from config import MIN_HP_PULL, MAX_HP_PULL, MIN_DEF_PULL, MAX_DEF_PULL, MIN_ATK_PULL, MAX_ATK_PULL, MIN_CRIT_DMG_PULL, \
     MAX_CRIT_DMG_PULL, BASE_ATK, BASE_DEF, BASE_HP, BASE_CRIT_DMG
 
@@ -12,6 +14,9 @@ class StatsSystem:
 
     def register_handlers(self):
         self.bot.message_handler(commands=['rollstats'])(self.generate_stats)
+        self.bot.message_handler(commands=["upgrade"])(self.upgrade_stat)
+        self.bot.callback_query_handler(func=lambda call: call.data.startswith("upgrade_stat_"))(
+            self.upgrade_stat_callback)
 
     def generate_stats(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
@@ -27,7 +32,8 @@ class StatsSystem:
             "HP": sum(sorted([random.randint(MIN_HP_PULL, MAX_HP_PULL) for _ in range(4)])[1:]) + BASE_HP,
             "DEF": sum(sorted([random.randint(MIN_DEF_PULL, MAX_DEF_PULL) for _ in range(4)])[1:]) + BASE_DEF,
             "ATK": sum(sorted([random.randint(MIN_ATK_PULL, MAX_ATK_PULL) for _ in range(4)])[1:]) + BASE_ATK,
-            "CRIT.DMG": sum(sorted(random.randint(MIN_CRIT_DMG_PULL, MAX_CRIT_DMG_PULL) for _ in range(4))[1:]) + BASE_CRIT_DMG,
+            "CRIT.DMG": sum(
+                sorted(random.randint(MIN_CRIT_DMG_PULL, MAX_CRIT_DMG_PULL) for _ in range(4))[1:]) + BASE_CRIT_DMG,
             "PEN": 0,
         }
 
@@ -53,6 +59,85 @@ class StatsSystem:
                 [f"{key}: {value}" for key, value in final_stats.items()]
             )
         )
+
+    def upgrade_stat(self, message):
+        markup = types.InlineKeyboardMarkup()
+
+        hp_button = types.InlineKeyboardButton(
+            text="❤️‍🩹 Здоровье",
+            callback_data="upgrade_stat_HP"
+        )
+
+        def_button = types.InlineKeyboardButton(
+            text="🛡️ Защита",
+            callback_data="upgrade_stat_DEF"
+        )
+
+        atk_button = types.InlineKeyboardButton(
+            text="⚔️ Атака",
+            callback_data="upgrade_stat_ATK"
+        )
+
+        pen_button = types.InlineKeyboardButton(
+            text="🗡️ Пробивание",
+            callback_data="upgrade_stat_PEN"
+        )
+
+        crit_dmg_button = types.InlineKeyboardButton(
+            text="💥 Крит. урон",
+            callback_data="upgrade_stat_CRIT.DMG"
+        )
+
+        markup.row(hp_button, def_button)
+        markup.row(pen_button, atk_button)
+        markup.add(crit_dmg_button)
+
+        self.bot.reply_to(message, "Выберите характеристику для прокачки", reply_markup=markup)
+
+    def upgrade_stat_callback(self, call):
+        stat = call.data.split("_")[2]
+        player_data = self.players.get(self.PlayerQuery.uid == call.from_user.id)
+
+        if not player_data:
+            self.bot.answer_callback_query(
+                call.id,
+                "У вас нет профиля! Создайте его с помощью команды /createprofile",
+                show_alert=True
+            )
+            return
+
+        if player_data["stats"]["points"] < 1:
+            self.bot.answer_callback_query(
+                call.id,
+                "У вас недостаточно очков характеристик.",
+                show_alert=True
+            )
+            return
+
+        stats_upgrades = {
+            "HP": random.randint(75, 135),
+            "DEF": random.randint(25, 45),
+            "ATK": random.randint(25, 45),
+            "PEN": random.randint(1, 2),
+            "CRIT.DMG": random.randint(1, 3),
+        }
+
+        upgrade_amount = stats_upgrades.get(stat, 0)
+        self.calc_stat_upgrade(player_data, stat, upgrade_amount)
+        player_data["stats"]["points"] -= 1
+        self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
+
+    def give_point_to_player(self, player_data, new_lv):
+        if new_lv % 5 != 0:
+            return
+
+        player_data["stats"]["points"] += 1
+
+        self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
+
+    def calc_stat_upgrade(self, player_data, stat, amount):
+        player_data["stats"]["base"][stat] += amount
+        self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
 
     @staticmethod
     def recalc_stats(player_data):

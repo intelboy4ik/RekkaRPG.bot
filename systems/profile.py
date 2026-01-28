@@ -28,6 +28,7 @@ class ProfileSystem:
                     "last_daily": None
                 },
                 "stats": {
+                    "points": 0,
                     "base":
                         {
                             "HP": 0,
@@ -82,7 +83,10 @@ class ProfileSystem:
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
                 f"⚔️ Атака: {stats['ATK']}\n"
-                f"💥 Крит. урон: {stats['CRIT.DMG']}%"
+                f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
+                f"🗡️ Пробивание: {stats['PEN']}"
+                "f\n\n"
+                f"🧩 Очки характеристик: {player_data['stats']['points']}"
             )
             return
         self.bot.reply_to(
