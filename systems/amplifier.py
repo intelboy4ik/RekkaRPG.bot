@@ -112,6 +112,10 @@ class AmplifierSystem:
             self.bot.reply_to(message, "У вас нет этого амплификатора в инвентаре!")
             return
 
+        if player_data["amplifiers"]["equipped"]:
+            self.bot.reply_to(message, "Сначала снимите текущий амплификатор с помощью команды /unequip")
+            return
+
         for key, value in amplifier["stats"].items():
             match key:
                 case "CRIT.DMG" | "PEN" | "ATK":

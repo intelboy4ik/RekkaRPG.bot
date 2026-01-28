@@ -13,6 +13,7 @@ from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
 from systems.store import StoreSystem
 from systems.decoder import DecoderSystem
+from systems.redeem import RedeemSystem
 
 from commands.base import BaseCommands
 
@@ -22,10 +23,12 @@ db = TinyDB("database.json", storage=JSONStorage)
 # Tables
 players = db.table("players")
 amplifiers = db.table("amplifiers")
+codes = db.table("codes")
 
 # Queries
 PlayerQuery = Query()
 AmplifierQuery = Query()
+CodeQuery = Query()
 
 # Initialize bot
 token = config.TOKEN
@@ -40,6 +43,7 @@ amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, Pla
 duel_system = DuelSystem(bot, players, PlayerQuery, internot_system, stats_system)
 store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifier_system)
 decoder_system = DecoderSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
+redeem_system = RedeemSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, codes, CodeQuery)
 
 # Commands classes
 base_commands = BaseCommands(bot, players, PlayerQuery)
@@ -56,11 +60,14 @@ internot_system.register_handlers()
 # Amplifier system
 amplifier_system.register_handlers()
 
-#Store system
+# Store system
 store_system.register_handlers()
 
-#Signal system
+# Decoder system
 decoder_system.register_handlers()
+
+# Redeem system
+redeem_system.register_handlers()
 
 # Base commands
 base_commands.register_handlers()

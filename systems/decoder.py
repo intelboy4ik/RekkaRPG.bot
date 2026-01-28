@@ -114,8 +114,8 @@ class DecoderSystem:
             f"\n\n"
             f"• *Повторное получение*"
             f"При дешифровке, вы можете получить амплификатор, который уже есть в вашем инвентаре."
-            f"Если это произойдёт, вы получите компенсацию в виде видеокассет или монеток."
-            f"Амплификаторы тира B компенсируются **монетками**, в то время как амплификаторы тиров A и S компенсируются **видеокассетами**."
+            f"Если это произойдёт, вы получите компенсацию в виде видеокассет или денни."
+            f"Амплификаторы тира B компенсируются **денни**, в то время как амплификаторы тиров A и S компенсируются **видеокассетами**."
             ,
             parse_mode="Markdown"
         )
@@ -124,7 +124,7 @@ class DecoderSystem:
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
         player["decoder"]["videotapes"] -= 1
-        player["decoder"]["searched"] += 1
+        player["decoder"]["decoded"] += 1
 
         player["decoder"]["guarantee"]["a-tier"] -= 1
         player["decoder"]["guarantee"]["s-tier"] -= 1
@@ -158,7 +158,7 @@ class DecoderSystem:
             if amplifier["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amplifier["name"])
             else:
-                player["internot"]["coins"] += 35
+                player["internot"]["denny"] += 35
 
         self.players.update(
             {

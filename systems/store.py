@@ -56,7 +56,7 @@ class StoreSystem:
             f"\n\n"
             f"_📺 {random_phrase} Видеокассеты для дешифровки!_"
             f"\n\n"
-            f"1 кассета — 360 монеток, 10 кассет — 3600 монеток...",
+            f"1 кассета — 360 денни, 10 кассет — 3600 денни...",
             reply_markup=markup,
             message_thread_id=message.message_thread_id,
             parse_mode="Markdown"
@@ -78,15 +78,15 @@ class StoreSystem:
             )
             return
 
-        if player["internot"]["coins"] < amplifier["cost"]:
+        if player["internot"]["denny"] < amplifier["cost"]:
             self.bot.answer_callback_query(
                 call.id,
-                "У вас недостаточно монеток для покупки этого амплификатора.",
+                "У вас недостаточно денни для покупки этого амплификатора.",
                 show_alert=True
             )
             return
 
-        player["internot"]["coins"] -= amplifier["cost"]
+        player["internot"]["denny"] -= amplifier["cost"]
         if "owned" not in player["amplifiers"]:
             player["amplifiers"]["owned"] = []
         player["amplifiers"]["owned"].append(amplifier_name)
@@ -112,15 +112,15 @@ class StoreSystem:
             )
             return
 
-        if player["internot"]["coins"] < cost:
+        if player["internot"]["denny"] < cost:
             self.bot.answer_callback_query(
                 call.id,
-                "У вас недостаточно монеток для покупки видеокассет.",
+                "У вас недостаточно денни для покупки видеокассет.",
                 show_alert=True
             )
             return
 
-        player["internot"]["coins"] -= cost
+        player["internot"]["denny"] -= cost
         player["decoder"]["videotapes"] += quantity
 
         self.players.update({

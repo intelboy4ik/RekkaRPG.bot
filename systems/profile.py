@@ -22,7 +22,7 @@ class ProfileSystem:
                 "role": "не задана",
                 "internot": {
                     "lv": 1,
-                    "coins": 0,
+                    "denny": 0,
                     "posts": 0,
                     "duel_wins": 0,
                     "last_daily": None
@@ -49,7 +49,7 @@ class ProfileSystem:
                 },
                 "decoder": {
                     "videotapes": 45,
-                    "searched": 0,
+                    "decoded": 0,
                     "guarantee": {
                         "a-tier": 10,
                         "s-tier": 90
@@ -78,15 +78,16 @@ class ProfileSystem:
                 f"Роль • {player_data['role']}\n"
                 f"Ур. Интернота • {player_data['internot']['lv']}\n"
                 f"Амплификатор • {player_data['amplifiers']['equipped'] if player_data['amplifiers']['equipped'] else 'пусто'}\n"
-                f"Баланс • {player_data['internot']['coins']} монеток"
+                f"Баланс • {player_data['internot']['denny']} денни"
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
                 f"⚔️ Атака: {stats['ATK']}\n"
+                f"🗡️ Пробивание: {stats['PEN']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
-                f"🗡️ Пробивание: {stats['PEN']}"
-                "f\n\n"
-                f"🧩 Очки характеристик: {player_data['stats']['points']}"
+                f"\n"
+                f"Видеокассеты • 📼 {player_data['decoder']['videotapes']}\n"
+                f"Очки характеристик • 🧩 {player_data['stats']['points']}"
             )
             return
         self.bot.reply_to(

@@ -149,6 +149,6 @@ class StatsSystem:
         for key, base_value in base.items():
             flat_bonus = flat.get(key, 0)
             percent_bonus = percent.get(key, 0)
-            visible[key] = int(base_value * (1 + percent_bonus / 100)) + flat_bonus
+            visible[key] = int(base_value * (1 + percent_bonus / 100) + flat_bonus)
 
         return visible
