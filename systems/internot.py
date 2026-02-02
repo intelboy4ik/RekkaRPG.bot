@@ -49,12 +49,12 @@ class InternotSystem:
             self.bot.reply_to(message, "Вы уже получили ежедневную награду сегодня! Приходите завтра.")
             return
 
-        coins_bonus = random.randint(120, 600)
-        player_data["internot"]["coins"] += coins_bonus
+        denny_bonus = random.randint(120, 600)
+        player_data["internot"]["denny"] += denny_bonus
         player_data["internot"]["last_daily"] = today
 
         self.players.update({"internot": player_data["internot"]}, self.PlayerQuery.uid == player_data["uid"])
-        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{coins_bonus} монеток")
+        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{denny_bonus} монеток")
 
     def up_internot_lv(self, player_data) -> bool:
         internot = player_data["internot"]

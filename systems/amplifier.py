@@ -209,7 +209,7 @@ class AmplifierSystem:
         inventory_text = "_🎒 Ваш инвентарь_\n\n" + "\n".join(
             [
                 f"*{amplifier}*"
-                + ("(экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "")
+                + (" (экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "")
                 + f"\n{self.format_amplifier_stats(amplifier)}\n"
                 for amplifier in owned_amplifiers
             ]

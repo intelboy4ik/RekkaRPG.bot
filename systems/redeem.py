@@ -115,3 +115,6 @@ class RedeemSystem:
 
                 self.players.update({"amplifiers": player["amplifiers"]}, self.PlayerQuery.uid == message.from_user.id)
                 self.bot.reply_to(message, f"Вы успешно получили амплификатор {amplifier_name}!")
+
+        redeem_code["redeemed_by"].append(message.from_user.id)
+        self.codes.update({"redeemed_by": redeem_code["redeemed_by"]}, self.CodeQuery.code == code.upper())

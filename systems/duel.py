@@ -21,7 +21,7 @@ class DuelSystem:
             self.duel_callback_handler)
         self.bot.callback_query_handler(func=lambda call: call.data in ["player_attacks", "player_runaway"])(
             self.duel_callback_query)
-        self.bot.message_handler(commands=["infoduels"])(self.info)
+        self.bot.message_handler(commands=["duelsinfo"])(self.info)
 
     """
     Инициация дуэли
@@ -178,7 +178,7 @@ class DuelSystem:
             player_stats = self.stats_system.recalc_stats(player_data)
             enemy = duel["initiator"] if duel["duelist"]["ID"] == player_data["uid"] else duel["duelist"]
 
-            damage, is_crit, is_double_crit, is_miss = self.calculate_damage(player_stats, enemy["DEF"])
+            damage, is_crit, is_miss = self.calculate_damage(player_stats, enemy["DEF"])
 
             if duel["initiator"]["ID"] == player_data["uid"]:
                 duel["duelist"]["HP"] -= int(damage)
@@ -199,18 +199,7 @@ class DuelSystem:
             if is_crit:
                 self.bot.send_message(
                     call.message.chat.id,
-                    f"️️⚔️ Критический удар! Вы нанесли {int(damage)} урона противнику!"
-                    f"\n\n"
-                    f"Ход переходит к {next_turn['username']}",
-                    reply_markup=markup,
-                    message_thread_id=call.message.message_thread_id
-                )
-                return
-
-            if is_double_crit:
-                self.bot.send_message(
-                    call.message.chat.id,
-                    f"💥 Двойной крит! Вы нанесли {int(damage)} урона противнику!"
+                    f"️💥 Критический удар! Вы нанесли {int(damage)} урона противнику!"
                     f"\n\n"
                     f"Ход переходит к {next_turn['username']}",
                     reply_markup=markup,
@@ -220,44 +209,12 @@ class DuelSystem:
 
             self.bot.send_message(
                 call.message.chat.id,
-                f"👊 Вы нанесли {int(damage)} урона противнику!"
+                f"️⚔️ Вы нанесли {int(damage)} урона противнику!"
                 f"\n\n"
                 f"Ход переходит к {next_turn['username']}",
                 reply_markup=markup,
                 message_thread_id=call.message.message_thread_id
             )
-
-            if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
-                winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
-                winner_user_data = self.players.get(self.PlayerQuery.uid == duel[winner]["ID"])
-
-                winner_user_data["internot"]["duel_wins"] += 1
-
-                coins_wins = random.randint(125, 300)
-                winner_user_data["internot"]["coins"] += coins_wins
-
-                self.players.update({
-                    "internot": winner_user_data["internot"]
-                },
-                    self.PlayerQuery.uid == winner_user_data["uid"]
-                )
-
-                if winner_user_data["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
-                    self.internot.up_internot_lv(
-                        winner_user_data
-                    )
-                    self.internot.send_congrats_message(
-                        winner_user_data,
-                        "за победы в дуэлях"
-                    )
-
-                self.bot.send_message(
-                    call.message.chat.id,
-                    f"Бой окончен!\n"
-                    f"🏆 Победитель: {winner_user_data['username']}\n\nНачисляем {coins_wins} монеток...",
-                    message_thread_id=call.message.message_thread_id
-                )
-                self.active_duels.pop(call.message.chat.id, None)
         else:
             dice = random.randint(1, 18)
             if dice <= 16:
@@ -274,6 +231,38 @@ class DuelSystem:
                 message_thread_id=call.message.message_thread_id
             )
 
+            self.active_duels.pop(call.message.chat.id, None)
+
+        if duel["initiator"]["HP"] <= 0 or duel["duelist"]["HP"] <= 0:
+            winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
+            winner_user_data = self.players.get(self.PlayerQuery.uid == duel[winner]["ID"])
+
+            winner_user_data["internot"]["duel_wins"] += 1
+
+            wins_denny = random.randint(125, 300)
+            winner_user_data["internot"]["denny"] += wins_denny
+
+            self.players.update({
+                "internot": winner_user_data["internot"]
+            },
+                self.PlayerQuery.uid == winner_user_data["uid"]
+            )
+
+            if winner_user_data["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
+                self.internot.up_internot_lv(
+                    winner_user_data
+                )
+                self.internot.send_congrats_message(
+                    winner_user_data,
+                    "за победы в дуэлях"
+                )
+
+            self.bot.send_message(
+                call.message.chat.id,
+                f"Бой окончен!\n"
+                f"🏆 Победитель: {winner_user_data['username']}\n\nНачисляем {wins_denny} монеток...",
+                message_thread_id=call.message.message_thread_id
+            )
             self.active_duels.pop(call.message.chat.id, None)
 
     def info(self, message):
@@ -316,18 +305,14 @@ class DuelSystem:
 
         dice = random.randint(1, 25)
         is_crit = False
-        is_double_crit = False
         is_miss = False
 
         match dice:
             case 1 | 2 | 3:
                 damage = 0
                 is_miss = True
-            case 21 | 22 | 23 | 24:
-                damage *= player_stats["CRIT.DMG"] / 100
+            case 21 | 22 | 23 | 24 | 25:
+                damage *= 1 + player_stats["CRIT.DMG"] / 100
                 is_crit = True
-            case 25:
-                damage *= player_stats["CRIT.DMG"] / 100 * 2
-                is_double_crit = True
 
-        return damage, is_crit, is_double_crit, is_miss
+        return damage, is_crit, is_miss
