@@ -15,8 +15,14 @@ class StatsSystem:
     def register_handlers(self):
         self.bot.message_handler(commands=['rollstats'])(self.generate_stats)
         self.bot.message_handler(commands=["upgrade"])(self.upgrade_stat)
-        self.bot.callback_query_handler(func=lambda call: call.data.startswith("upgrade_stat_"))(
-            self.upgrade_stat_callback)
+        self.bot.callback_query_handler(
+            func=lambda call: call.data.startswith("set_attribute_"))(
+            self.set_attr_callback
+        )
+        self.bot.callback_query_handler(
+            func=lambda call: call.data.startswith("upgrade_stat_"))(
+            self.upgrade_stat_callback
+        )
 
     def generate_stats(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
@@ -35,6 +41,7 @@ class StatsSystem:
             "CRIT.DMG": sum(
                 sorted(random.randint(MIN_CRIT_DMG_PULL, MAX_CRIT_DMG_PULL) for _ in range(4))[1:]) + BASE_CRIT_DMG,
             "PEN": 0,
+            "ATTR.DMG": 0,
         }
 
         final_stats = {
@@ -50,7 +57,29 @@ class StatsSystem:
             "stats": player_data["stats"]
         }, self.PlayerQuery.uid == message.from_user.id)
 
-        self.recalc_stats(player_data)
+        physics_attr_button = types.InlineKeyboardButton(
+            text="💥",
+            callback_data="set_attribute_physics"
+        )
+
+        fire_attr_button = types.InlineKeyboardButton(
+            text="🔥",
+            callback_data="set_attribute_fire"
+        )
+
+        electricity_attr_button = types.InlineKeyboardButton(
+            text="⚡️",
+            callback_data="set_attribute_electricity"
+        )
+
+        ice_attr_button = types.InlineKeyboardButton(
+            text="❄️",
+            callback_data="set_attribute_ice"
+        )
+
+        markup = types.InlineKeyboardMarkup()
+        markup.row(physics_attr_button, electricity_attr_button)
+        markup.row(fire_attr_button, ice_attr_button)
 
         self.bot.send_dice(message.chat.id, message_thread_id=message.message_thread_id)
         self.bot.reply_to(
@@ -58,6 +87,47 @@ class StatsSystem:
             "Полученные характеристики:\n" + "\n".join(
                 [f"{key}: {value}" for key, value in final_stats.items()]
             )
+        )
+        self.bot.reply_to(
+            message,
+            "Выберите свой атрибут (изменить будет нельзя!)"
+            "\n"
+            "\n"
+            "*💥 Физический* - увеличивает урон каждого удара.\n"
+            "*⚡️ Электрический* - вызывает шок наносящий доп. урон.\n"
+            "*🔥 Огненный* - с шансом 1/6 поджигает противника вынуждая пропустить ход.\n"
+            "*❄️ Ледяной* - повышает шанс критического попадания.\n"
+            ,
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+
+    def set_attr_callback(self, call):
+        attr = call.data.split("_")[2]
+        player_data = self.players.get(self.PlayerQuery.uid == call.from_user.id)
+
+        if not player_data:
+            self.bot.answer_callback_query(
+                call.id,
+                "У вас нет профиля! Создайте его с помощью команды /createprofile",
+                show_alert=True
+            )
+            return
+
+        if player_data["attribute"]:
+            self.bot.answer_callback_query(
+                call.id,
+                "Вы уже задали себе атрибут!",
+                show_alert=True
+            )
+            return
+
+        player_data["attribute"] = attr
+        self.players.update({"attribute": player_data["attribute"]}, self.PlayerQuery.uid == call.from_user.id)
+        self.bot.answer_callback_query(
+            call.id,
+            "Атрибут установлен!",
+            show_alert=True
         )
 
     def upgrade_stat(self, message):
@@ -123,7 +193,7 @@ class StatsSystem:
         }
 
         upgrade_amount = stats_upgrades.get(stat, 0)
-        self.calc_stat_upgrade(player_data, stat, upgrade_amount)
+        self.calculate_stat_upgrade(player_data, stat, upgrade_amount)
         player_data["stats"]["points"] -= 1
         self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
 
@@ -135,12 +205,12 @@ class StatsSystem:
 
         self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
 
-    def calc_stat_upgrade(self, player_data, stat, amount):
+    def calculate_stat_upgrade(self, player_data, stat, amount):
         player_data["stats"]["base"][stat] += amount
         self.players.update({"stats": player_data["stats"]}, self.PlayerQuery.uid == player_data["uid"])
 
     @staticmethod
-    def recalc_stats(player_data):
+    def recalculate_stats(player_data):
         visible = {}
         base = player_data["stats"]["base"]
         flat = player_data["stats"]["modifiers"]["flat"]

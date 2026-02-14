@@ -20,7 +20,7 @@ class ProfileSystem:
                 "uid": message.from_user.id,
                 "username": f"@{message.from_user.username}",
                 "role": "не задана",
-                "internot": {
+                "progression": {
                     "lv": 1,
                     "denny": 0,
                     "posts": 0,
@@ -36,6 +36,7 @@ class ProfileSystem:
                             "ATK": 0,
                             "PEN": 0,
                             "CRIT.DMG": 0,
+                            "ATTR.DMG": 0,
                         },
                     "modifiers":
                         {
@@ -43,6 +44,7 @@ class ProfileSystem:
                             "percent": {}
                         }
                 },
+                "attribute": None,
                 "amplifiers": {
                     "owned": [],
                     "equipped": None
@@ -52,7 +54,7 @@ class ProfileSystem:
                     "decoded": 0,
                     "guarantee": {
                         "a-tier": 10,
-                        "s-tier": 90
+                        "s-tier": 40
                     },
                 }
             })
@@ -69,16 +71,16 @@ class ProfileSystem:
         if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
-        stats = self.stats_system.recalc_stats(player_data)
+        stats = self.stats_system.recalculate_stats(player_data)
         if stats["HP"] != 0:
             self.bot.reply_to(
                 message,
                 f"Игрок | {player_data['username']}"
                 f"\n\n"
                 f"Роль • {player_data['role']}\n"
-                f"Ур. Интернота • {player_data['internot']['lv']}\n"
+                f"Ур. Интернота • {player_data['progression']['lv']}\n"
                 f"Амплификатор • {player_data['amplifiers']['equipped'] if player_data['amplifiers']['equipped'] else 'пусто'}\n"
-                f"Баланс • {player_data['internot']['denny']} денни"
+                f"Баланс • {player_data['progression']['denny']} денни"
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"

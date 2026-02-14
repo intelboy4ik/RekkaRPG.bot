@@ -16,6 +16,7 @@ class AmplifierSystem:
         self.bot.message_handler(commands=["equip"])(self.equip_amplifier)
         self.bot.message_handler(commands=["unequip"])(self.unequip_amplifier)
         self.bot.message_handler(commands=["inventory"])(self.open_inventory)
+        self.bot.message_handler(commands=["infoamplifiers"])(self.info)
 
     def add_amplifier(self, message):
         if not is_admin(message.from_user.id):
@@ -23,7 +24,7 @@ class AmplifierSystem:
             return
 
         parts = message.text.split(" ")
-        if len(parts) != 7:
+        if len(parts) < 7:
             self.bot.reply_to(
                 message,
                 "Неверный формат команды!"
@@ -54,6 +55,13 @@ class AmplifierSystem:
 
         cost = int(parts[6])
 
+        attr_name = None
+        attr_bonus = None
+
+        if len(parts) == 9:
+            attr_name = parts[8]
+            attr_bonus = parts[9]
+
         if self.amplifiers.get(self.AmplifierQuery.name == name):
             self.bot.reply_to(message, "Амплификатор с таким именем уже существует!")
             return
@@ -65,6 +73,10 @@ class AmplifierSystem:
         self.amplifiers.insert({
             "name": name,
             "stats": amplifier_stats,
+            "attribute": {
+                "name": attr_name,
+                "bonus": attr_bonus,
+            },
             "cost": cost,
             "tier": tier
         })
@@ -116,11 +128,16 @@ class AmplifierSystem:
             self.bot.reply_to(message, "Сначала снимите текущий амплификатор с помощью команды /unequip")
             return
 
+        if amplifier['attribute']['name'] == player_data["attribute"]:
+            player_stats["ATTR.DMG"] = amplifier['attribute']['bonus']
+
         for key, value in amplifier["stats"].items():
             match key:
-                case "CRIT.DMG" | "PEN" | "ATK":
+                case "ATK":
+                    player_stats["base"]["ATK"] += value
+                case "CRIT.DMG" | "PEN" if amplifier['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) + value
-                case _:
+                case _ if amplifier['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) + value
 
         player_data["amplifiers"]["equipped"] = amplifier["name"]
@@ -149,11 +166,16 @@ class AmplifierSystem:
             self.bot.reply_to(message, "Экипированный амплификатор не найден!")
             return
 
+        if amplifier['attribute']['name'] == player_data["attribute"]:
+            player_stats["ATTR.DMG"] = amplifier['attribute']['bonus']
+
         for key, value in amplifier["stats"].items():
             match key:
-                case "CRIT.DMG" | "PEN" | "ATK":
+                case "ATK":
+                    player_stats["base"]["ATK"] -= value
+                case "CRIT.DMG" | "PEN" if amplifier['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) - value
-                case _:
+                case _ if amplifier['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) - value
 
         player_data["amplifiers"]["equipped"] = None
@@ -193,7 +215,21 @@ class AmplifierSystem:
             else:
                 extra_text = f"{stat_name} +{extra_value}"
 
-        return f"⚔️ Атака +{atk}\n{extra_text}"
+        attr_emojis = {
+            "fire": "🔥",
+            "ice": "❄️",
+            "electricity": "⚡️",
+            "physics": "💥"
+        }
+
+        attr_name = amplifier["attribute"]["name"]
+        bonus = amplifier["attribute"]["bonus"]
+
+        emoji = attr_emojis.get(attr_name, "")
+
+        attr_text = f"{emoji} {bonus}%".lstrip()
+
+        return f"⚔️ Атака +{atk}\n{extra_text}\n{attr_text}"
 
     def open_inventory(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
@@ -219,5 +255,27 @@ class AmplifierSystem:
             message.chat.id,
             inventory_text,
             message_thread_id=message.message_thread_id,
+            parse_mode="Markdown"
+        )
+
+    def info(self, message):
+        self.bot.reply_to(
+            message,
+            f"*Приветствуем в справочной Интернота!*"
+            f"\n\n"
+            f"В этой статье мы расскажем об Амплификаторах."
+            f"\n\n"
+            f"• *Амплификатор* — это предмет экипировки, который даёт вашему персонажу дополнительные характеристики."
+            f"\n\n"
+            f"• *Как это работает?*"
+            f"\n"
+            f"После того как вы получили амплификатор в декодере, вы можете экипировать его."
+            f"\n"
+            f"Так вы получите бонус к базовой атаке, и к дополнительной характеристке."
+            f"\n\n"
+            f"*Характеристика работает не всегда**."
+            f"\n"
+            f"Чтобы характеристика работало, необходимо чтобы атрибут амплификатора совпадал с вашим."
+            ,
             parse_mode="Markdown"
         )

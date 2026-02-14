@@ -3,16 +3,16 @@ import random
 from telebot import types
 
 from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV, MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER, \
-    BASE_DUEL_DEFENSE
+    BASE_DUEL_DEFENSE, MIN_SHOCK_MULTIPLIER, MAX_SHOCK_MULTIPLIER
 
 
 class DuelSystem:
-    def __init__(self, bot, players, playerquery, internot, stats_system=None):
+    def __init__(self, bot, players, playerquery, progression_system, stats_system=None):
         self.bot = bot
         self.players = players
         self.PlayerQuery = playerquery
         self.active_duels = {}
-        self.internot = internot
+        self.progression_system = progression_system
         self.stats_system = stats_system
 
     def register_handlers(self):
@@ -44,8 +44,8 @@ class DuelSystem:
         initiator_stats = None
 
         if initiator and duelist:
-            duelist_stats = self.stats_system.recalc_stats(duelist)
-            initiator_stats = self.stats_system.recalc_stats(initiator)
+            duelist_stats = self.stats_system.recalculate_stats(duelist)
+            initiator_stats = self.stats_system.recalculate_stats(initiator)
 
         if not duelist_stats or duelist_stats["HP"] <= 0:
             self.bot.reply_to(message, "Игрок не найден либо не готов к бою.")
@@ -107,8 +107,8 @@ class DuelSystem:
             duelist = self.players.get(self.PlayerQuery.uid == duel["duelist"]["ID"])
 
             # Stats
-            duelist_stats = self.stats_system.recalc_stats(duelist)
-            initiator_stats = self.stats_system.recalc_stats(initiator)
+            duelist_stats = self.stats_system.recalculate_stats(duelist)
+            initiator_stats = self.stats_system.recalculate_stats(initiator)
 
             markup = types.InlineKeyboardMarkup()
             attack = types.InlineKeyboardButton("🗡️ Атаковать", callback_data="player_attacks")
@@ -175,10 +175,21 @@ class DuelSystem:
         next_turn = self.players.get(self.PlayerQuery.uid == duel["turn"])
 
         if call.data == "player_attacks":
-            player_stats = self.stats_system.recalc_stats(player_data)
             enemy = duel["initiator"] if duel["duelist"]["ID"] == player_data["uid"] else duel["duelist"]
 
-            damage, is_crit, is_miss = self.calculate_damage(player_stats, enemy["DEF"])
+            damage, shock_damage, is_crit, is_burning, is_freeze, is_miss = self.calculate_damage(player_data, enemy["DEF"])
+
+            extra_text = "\n\n"
+            if shock_damage:
+                extra_text = f"\n⚡️{int(shock_damage)} шока!\n\n"
+
+            if is_burning:
+                extra_text = f"\n🔥 Противник загорелся! Ход остаётся у вас!\n\n"
+                duel["turn"] = player_data["uid"]
+                next_turn = self.players.get(self.PlayerQuery.uid == duel["turn"])
+
+            if is_freeze:
+                extra_text = f"\n❄️ Мороз снизил устойчивость противника к криту!\n\n"
 
             if duel["initiator"]["ID"] == player_data["uid"]:
                 duel["duelist"]["HP"] -= int(damage)
@@ -200,7 +211,7 @@ class DuelSystem:
                 self.bot.send_message(
                     call.message.chat.id,
                     f"️💥 Критический удар! Вы нанесли {int(damage)} урона противнику!"
-                    f"\n\n"
+                    f"{extra_text}"
                     f"Ход переходит к {next_turn['username']}",
                     reply_markup=markup,
                     message_thread_id=call.message.message_thread_id
@@ -210,7 +221,7 @@ class DuelSystem:
             self.bot.send_message(
                 call.message.chat.id,
                 f"️⚔️ Вы нанесли {int(damage)} урона противнику!"
-                f"\n\n"
+                f"{extra_text}"
                 f"Ход переходит к {next_turn['username']}",
                 reply_markup=markup,
                 message_thread_id=call.message.message_thread_id
@@ -237,22 +248,22 @@ class DuelSystem:
             winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
             winner_user_data = self.players.get(self.PlayerQuery.uid == duel[winner]["ID"])
 
-            winner_user_data["internot"]["duel_wins"] += 1
+            winner_user_data["progression"]["duel_wins"] += 1
 
             wins_denny = random.randint(125, 300)
-            winner_user_data["internot"]["denny"] += wins_denny
+            winner_user_data["progression"]["denny"] += wins_denny
 
             self.players.update({
-                "internot": winner_user_data["internot"]
+                "progression": winner_user_data["progression"]
             },
                 self.PlayerQuery.uid == winner_user_data["uid"]
             )
 
-            if winner_user_data["internot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
-                self.internot.up_internot_lv(
+            if winner_user_data["progression"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
+                self.progression_system.up_progression_lv(
                     winner_user_data
                 )
-                self.internot.send_congrats_message(
+                self.progression_system.send_congrats_message(
                     winner_user_data,
                     "за победы в дуэлях"
                 )
@@ -288,13 +299,13 @@ class DuelSystem:
             f"\n\n"
             f"• *Характеристики:*"
             f"\n"
-            f"Характеристики игроков, такие как здоровье, атака, защита, пробивание и критический урон, влияют на исход дуэли. Кроме того есть характеристика шанса крит. попадания. Для каждого игрока она составляет около **16%**. При этом есть шанс двойного крита в **4%**."
+            f"Характеристики игроков, такие как здоровье, атака, защита, пробивание и критический урон, влияют на исход дуэли. Кроме того есть характеристика шанса крит. попадания. Для каждого игрока она составляет около **22%**. Но у игроков с атрибутом 'лёд' он выше, и составляет около **48%**"
             ,
             parse_mode="Markdown"
         )
 
-    @staticmethod
-    def calculate_damage(player_stats, enemy_def):
+    def calculate_damage(self, player_data, enemy_def):
+        player_stats = self.stats_system.recalculate_stats(player_data)
         damage_multiplier = random.randint(MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER) / 100
 
         base_defense = BASE_DUEL_DEFENSE
@@ -302,17 +313,38 @@ class DuelSystem:
         final_defense = (enemy_def + base_defense - player_stats["PEN"]) / 1000
 
         damage = damage_multiplier * player_stats["ATK"] * (1 - final_defense)
+        shock_damage = None
 
-        dice = random.randint(1, 25)
+        player_attr = player_data["attribute"]
+
+        dice = random.randint(1, 36)
         is_crit = False
+        is_burning = False
+        is_freeze = False
         is_miss = False
 
         match dice:
-            case 1 | 2 | 3:
+            case 1 | 2 | 3 | 4 | 5:
                 damage = 0
                 is_miss = True
-            case 21 | 22 | 23 | 24 | 25:
+            case 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27:
                 damage *= 1 + player_stats["CRIT.DMG"] / 100
                 is_crit = True
+            case 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 if player_attr == "ice":
+                damage *= (1 + player_stats["ATTR.DMG"] / 100) + player_stats["CRIT.DMG"] / 100
+                is_freeze = True
+                is_crit = True
 
-        return damage, is_crit, is_miss
+        match player_attr:
+            case "physics":
+                damage *= 1 + player_stats["ATTR.DMG"] / 1000
+            case "electricity":
+                shock_multiplier = random.randint(MIN_SHOCK_MULTIPLIER, MAX_SHOCK_MULTIPLIER)
+                shock_damage = shock_multiplier * player_stats["ATTR.DMG"] / 10
+                damage += shock_damage
+            case "fire":
+                dice = random.randint(1, 6)
+                if dice == 6:
+                    is_burning = True
+
+        return damage, shock_damage, is_crit, is_burning, is_freeze, is_miss

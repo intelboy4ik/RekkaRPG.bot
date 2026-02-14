@@ -164,13 +164,13 @@ class DecoderSystem:
             if amplifier["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amplifier["name"])
             else:
-                player["internot"]["denny"] += 35
+                player["progression"]["denny"] += 35
 
         self.players.update(
             {
                 "decoder": player["decoder"],
                 "amplifiers": player["amplifiers"],
-                "internot": player["internot"],
+                "progression": player["progression"],
             },
             self.PlayerQuery.uid == player["uid"]
         )
