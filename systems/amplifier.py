@@ -16,7 +16,7 @@ class AmplifierSystem:
         self.bot.message_handler(commands=["equip"])(self.equip_amplifier)
         self.bot.message_handler(commands=["unequip"])(self.unequip_amplifier)
         self.bot.message_handler(commands=["inventory"])(self.open_inventory)
-        self.bot.message_handler(commands=["infoamplifiers"])(self.info)
+        self.bot.message_handler(commands=["amplifiersinfo"])(self.info)
 
     def add_amplifier(self, message):
         if not is_admin(message.from_user.id):
@@ -271,9 +271,9 @@ class AmplifierSystem:
             f"\n"
             f"После того как вы получили амплификатор в декодере, вы можете экипировать его."
             f"\n"
-            f"Так вы получите бонус к базовой атаке, и к дополнительной характеристке."
+            f"Так вы получите бонус к базовой атаке, и к дополнительной характеристике."
             f"\n\n"
-            f"*Характеристика работает не всегда**."
+            f"• *Характеристика работает не всегда*."
             f"\n"
             f"Чтобы характеристика работало, необходимо чтобы атрибут амплификатора совпадал с вашим."
             ,
