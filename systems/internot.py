@@ -54,7 +54,7 @@ class InternotSystem:
         player_data["internot"]["last_daily"] = today
 
         self.players.update({"internot": player_data["internot"]}, self.PlayerQuery.uid == player_data["uid"])
-        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{denny_bonus} монеток")
+        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{denny_bonus} денни")
 
     def up_internot_lv(self, player_data) -> bool:
         internot = player_data["internot"]
