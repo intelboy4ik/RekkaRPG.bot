@@ -2,7 +2,7 @@ import random
 
 from telebot import types
 
-from config import MAIN_GROUP_ID, SHIYUI_THREAD_ID, DUEL_WINS_PER_LV, MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER, \
+from config import MAIN_GROUP_ID, DUEL_THREAD_ID, DUEL_WINS_PER_LV, MIN_DMG_MULTIPLIER, MAX_DMG_MULTIPLIER, \
     BASE_DUEL_DEFENSE, MIN_SHOCK_MULTIPLIER, MAX_SHOCK_MULTIPLIER
 
 
@@ -28,7 +28,7 @@ class DuelSystem:
     """
 
     def initiate_duel(self, message):
-        if message.chat.id != MAIN_GROUP_ID or message.message_thread_id != SHIYUI_THREAD_ID:
+        if message.chat.id != MAIN_GROUP_ID or message.message_thread_id != DUEL_THREAD_ID:
             self.bot.reply_to(message, "Дуэли можно вызывать только в Обороне шиюй.")
             return
 
@@ -184,7 +184,7 @@ class DuelSystem:
                 extra_text = f"\n⚡️{int(shock_damage)} шока!\n\n"
 
             if is_burning:
-                extra_text = f"\n🔥 Противник загорелся! Ход остаётся у вас!\n\n"
+                extra_text = f"\n🔥 Прожарка! Ход остаётся у вас!\n\n"
                 duel["turn"] = player_data["uid"]
                 next_turn = self.players.get(self.PlayerQuery.uid == duel["turn"])
 
@@ -346,5 +346,6 @@ class DuelSystem:
                 dice = random.randint(1, 6)
                 if dice == 6:
                     is_burning = True
+                    damage *= 1 + player_stats["ATTR.DMG"] / 1000
 
         return damage, shock_damage, is_crit, is_burning, is_freeze, is_miss

@@ -1,7 +1,7 @@
 import random
 from datetime import date
 
-from config import MAIN_GROUP_ID, INTERNOT_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV, INTERNOT_THREAD_ID
+from config import MAIN_GROUP_ID, LV_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV, MAIN_THREAD_ID
 
 
 class ProgressionSystem:
@@ -33,7 +33,7 @@ class ProgressionSystem:
                 self.send_congrats_message(player_data, "за активность в ролевом чате")
 
     def daily_reward(self, message):
-        if message.message_thread_id != INTERNOT_THREAD_ID:
+        if message.message_thread_id != MAIN_THREAD_ID:
             self.bot.reply_to(message, "Эту команду можно использовать только в чате Интернота.")
             return
 
@@ -49,12 +49,12 @@ class ProgressionSystem:
             self.bot.reply_to(message, "Вы уже получили ежедневную награду сегодня! Приходите завтра.")
             return
 
-        denny_bonus = random.randint(120, 600)
-        player_data["progression"]["denny"] += denny_bonus
+        money_bonus = random.randint(120, 600)
+        player_data["progression"]["money"] += money_bonus
         player_data["progression"]["last_daily"] = today
 
         self.players.update({"progression": player_data["progression"]}, self.PlayerQuery.uid == player_data["uid"])
-        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{denny_bonus} денни")
+        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{money_bonus} денни")
 
     def up_progression_lv(self, player_data) -> bool:
         progression = player_data["progression"]
@@ -71,5 +71,5 @@ class ProgressionSystem:
         self.bot.send_message(
             MAIN_GROUP_ID,
             f"Поздравляем! Уровень Интернота {player_data['username']} повышен {reason}!🎉",
-            message_thread_id=INTERNOT_UP_THREAD_ID
+            message_thread_id=LV_UP_THREAD_ID
         )

@@ -2,29 +2,31 @@ import random
 
 from telebot import types
 
+from config import GACHA_CURRENCY_NAME
 
-class DecoderSystem:
-    def __init__(self, bot, players, playerquery, amplifiers, amplifierquery):
+
+class GachaSystem:
+    def __init__(self, bot, players, playerquery, weapons, amplifierquery):
         self.bot = bot
         self.players = players
         self.PlayerQuery = playerquery
-        self.amplifiers = amplifiers
+        self.weapons = weapons
         self.AmplifierQuery = amplifierquery
-        self.b_tier_amplifiers = self.amplifiers.search(self.AmplifierQuery.tier == "B")
-        self.a_tier_amplifiers = self.amplifiers.search(self.AmplifierQuery.tier == "A")
-        self.s_tier_amplifiers = self.amplifiers.search(self.AmplifierQuery.tier == "S")
+        self.b_rank_weapons = self.weapons.search(self.AmplifierQuery.rank == "B")
+        self.a_rank_weapons = self.weapons.search(self.AmplifierQuery.rank == "A")
+        self.s_rank_weapons = self.weapons.search(self.AmplifierQuery.rank == "S")
 
     def register_handlers(self):
         self.bot.message_handler(commands=["decoder"])(self.open_signal)
         self.bot.callback_query_handler(
-            func=lambda call: call.data in ["try_decode_x1", "try_decode_x10"]
+            func=lambda call: call.data in ["pull_x1", "pull_x10"]
         )(self.try_decode_callback)
-        self.bot.message_handler(commands=["decoderinfo"])(self.info)
+        self.bot.message_handler(commands=["dcoderinfo"])(self.info)
 
     def open_signal(self, message):
         markup = types.InlineKeyboardMarkup()
-        button_search_x1 = types.InlineKeyboardButton("🔍 Попытка (1x)", callback_data="try_decode_x1")
-        button_search_x10 = types.InlineKeyboardButton("🔍 Попытка (10x)", callback_data="try_decode_x10")
+        button_search_x1 = types.InlineKeyboardButton("🔍 Попытка (1x)", callback_data="pull_x1")
+        button_search_x10 = types.InlineKeyboardButton("🔍 Попытка (10x)", callback_data="pull_x10")
         markup.row(button_search_x1, button_search_x10)
         self.bot.reply_to(
             message,
@@ -48,7 +50,7 @@ class DecoderSystem:
         result = []
 
         if call.data == "try_decode_x1":
-            if player_data["decoder"]["videotapes"] < 1:
+            if player_data["gacha"][GACHA_CURRENCY_NAME] < 1:
                 self.bot.answer_callback_query(
                     call.id,
                     "У вас недостаточно видеокассет для дешифровки.",
@@ -63,14 +65,14 @@ class DecoderSystem:
                 "*Результаты*"
                 "\n" +
                 "\n".join(
-                    f"{'🔶' if amp['tier'] == 'S' else '🔸' if amp['tier'] == "A" else '🔹'} {amp['name']}" for amp in
+                    f"{'🔶' if amp['rank'] == 'S' else '🔸' if amp['rank'] == "A" else '🔹'} {amp['name']}" for amp in
                     result),
                 parse_mode="Markdown",
                 message_thread_id=call.message.message_thread_id
             )
             return
 
-        if player_data["decoder"]["videotapes"] < 10:
+        if player_data["gacha"][GACHA_CURRENCY_NAME] < 10:
             self.bot.answer_callback_query(
                 call.id,
                 "У вас недостаточно видеокассет для дешифровки.",
@@ -86,7 +88,7 @@ class DecoderSystem:
             "*Результаты*"
             "\n" +
             "\n".join(
-                f"{'🔶' if amp['tier'] == 'S' else '🔸' if amp['tier'] == "A" else '🔹'} {amp['name']}" for amp in result),
+                f"{'🔶' if amp['rank'] == 'S' else '🔸' if amp['rank'] == "A" else '🔹'} {amp['name']}" for amp in result),
             parse_mode="Markdown",
             message_thread_id=call.message.message_thread_id
         )
@@ -114,9 +116,9 @@ class DecoderSystem:
             f"\n\n"
             f"• *Система гарантий:*"
             f"\n"
-            f"Амплификаторы тиров A и S имеют систему гарантий, которая увеличивает ваши шансы на получение этих амплификаторов при последующих дешифровках."
+            f"Амплификаторы редкости A и S имеют систему гарантий, которая увеличивает ваши шансы на получение этих амплификаторов при последующих дешифровках."
             f"\n"
-            f"Так, амплификатор тира A гарантированно выпадет в течении **10 расшифровок**, а амплификатор тира S — в течении **90 расшифровок**."
+            f"Так, амплификатор редкости A гарантированно выпадет в течении **10 дешифровок**, а амплификатор редкости S — в течении **90 дешифровок**."
             f"\n\n"
             f"• *Повторное получение*"
             f"При дешифровке, вы можете получить амплификатор, который уже есть в вашем инвентаре."
@@ -129,47 +131,47 @@ class DecoderSystem:
     def calc_decode_res(self, call):
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
-        player["decoder"]["videotapes"] -= 1
-        player["decoder"]["decoded"] += 1
+        player["gacha"][GACHA_CURRENCY_NAME] -= 1
+        player["gacha"]["pulled"] += 1
 
-        player["decoder"]["guarantee"]["a-tier"] -= 1
-        player["decoder"]["guarantee"]["s-tier"] -= 1
+        player["gacha"]["guarantee"]["a-rank"] -= 1
+        player["gacha"]["guarantee"]["s-rank"] -= 1
 
         dice = random.randint(1, 1000)
 
-        if dice <= 12 or player["decoder"]["guarantee"]["s-tier"] <= 0:
-            amplifier = random.choice(self.s_tier_amplifiers)
+        if dice <= 12 or player["gacha"]["guarantee"]["s-rank"] <= 0:
+            amplifier = random.choice(self.s_rank_weapons)
 
-            if amplifier["name"] not in player["amplifiers"]["owned"]:
-                player["amplifiers"]["owned"].append(amplifier["name"])
+            if amplifier["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(amplifier["name"])
             else:
-                player["decoder"]["videotapes"] += 5
+                player["gacha"][GACHA_CURRENCY_NAME] += 5
 
-            player["decoder"]["guarantee"]["a-tier"] = 10
-            player["decoder"]["guarantee"]["s-tier"] = 90
+            player["gacha"]["guarantee"]["a-rank"] = 10
+            player["gacha"]["guarantee"]["s-rank"] = 90
 
-        elif dice <= 140 or player["decoder"]["guarantee"]["a-tier"] <= 0:
-            amplifier = random.choice(self.a_tier_amplifiers)
+        elif dice <= 140 or player["gacha"]["guarantee"]["a-rank"] <= 0:
+            amplifier = random.choice(self.a_rank_weapons)
 
-            if amplifier["name"] not in player["amplifiers"]["owned"]:
-                player["amplifiers"]["owned"].append(amplifier["name"])
+            if amplifier["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(amplifier["name"])
             else:
-                player["decoder"]["videotapes"] += 2
+                player["gacha"][GACHA_CURRENCY_NAME] += 2
 
-            player["decoder"]["guarantee"]["a-tier"] = 10
+            player["gacha"]["guarantee"]["a-rank"] = 10
 
         else:
-            amplifier = random.choice(self.b_tier_amplifiers)
+            amplifier = random.choice(self.b_rank_weapons)
 
-            if amplifier["name"] not in player["amplifiers"]["owned"]:
-                player["amplifiers"]["owned"].append(amplifier["name"])
+            if amplifier["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(amplifier["name"])
             else:
-                player["progression"]["denny"] += 35
+                player["progression"]["money"] += 35
 
         self.players.update(
             {
-                "decoder": player["decoder"],
-                "amplifiers": player["amplifiers"],
+                "gacha": player["gacha"],
+                "weapons": player["weapons"],
                 "progression": player["progression"],
             },
             self.PlayerQuery.uid == player["uid"]

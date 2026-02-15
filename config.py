@@ -10,10 +10,10 @@ ADMINS_IDS = list(map(int, os.getenv("ADMINS_IDS").split(",")))
 
 # Telegram consts
 MAIN_GROUP_ID = int(os.getenv("MAIN_GROUP_ID"))
-INTERNOT_THREAD_ID = int(os.getenv("INTERNOT_THREAD_ID"))
-SHIYUI_THREAD_ID = int(os.getenv("SHIYUI_THREAD_ID"))
+MAIN_THREAD_ID = int(os.getenv("MAIN_THREAD_ID"))
+DUEL_THREAD_ID = int(os.getenv("DUEL_THREAD_ID"))
 ROLEPLAY_THREAD_ID = int(os.getenv("ROLEPLAY_THREAD_ID"))
-INTERNOT_UP_THREAD_ID = int(os.getenv("INTERNOT_UP_THREAD_ID"))
+LV_UP_THREAD_ID = int(os.getenv("LV_UP_THREAD_ID"))
 
 # Balance consts
 MAX_LV = int(os.getenv("MAX_LV"))
@@ -41,7 +41,10 @@ BASE_ATK = int(os.getenv("BASE_ATK"))
 BASE_CRIT_DMG = int(os.getenv("BASE_CRIT_DMG"))
 
 # Equipment consts
-AMPLIFIER_POSSIBLE_STATS = list(map(str, os.getenv("AMPLIFIER_POSSIBLE_STATS").split(",")))
+WEAPON_POSSIBLE_STATS = list(map(str, os.getenv("WEAPON_POSSIBLE_STATS").split(",")))
+
+# Gacha consts
+GACHA_CURRENCY_NAME = os.getenv("GACHA_CURRENCY_NAME")
 
 # Admin check function
 def is_admin(user_id):

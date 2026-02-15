@@ -1,4 +1,4 @@
-from config import is_admin
+from config import is_admin, GACHA_CURRENCY_NAME
 
 
 class ProfileSystem:
@@ -22,7 +22,7 @@ class ProfileSystem:
                 "role": "не задана",
                 "progression": {
                     "lv": 1,
-                    "denny": 0,
+                    "money": 0,
                     "posts": 0,
                     "duel_wins": 0,
                     "last_daily": None
@@ -45,16 +45,16 @@ class ProfileSystem:
                         }
                 },
                 "attribute": None,
-                "amplifiers": {
+                "weapons": {
                     "owned": [],
                     "equipped": None
                 },
-                "decoder": {
-                    "videotapes": 45,
-                    "decoded": 0,
+                "gacha": {
+                    GACHA_CURRENCY_NAME: 45,
+                    "pulled": 0,
                     "guarantee": {
-                        "a-tier": 10,
-                        "s-tier": 40
+                        "a-rank": 10,
+                        "s-rank": 40
                     },
                 }
             })
@@ -79,8 +79,8 @@ class ProfileSystem:
                 f"\n\n"
                 f"Роль • {player_data['role']}\n"
                 f"Ур. Интернота • {player_data['progression']['lv']}\n"
-                f"Амплификатор • {player_data['amplifiers']['equipped'] if player_data['amplifiers']['equipped'] else 'пусто'}\n"
-                f"Баланс • {player_data['progression']['denny']} денни"
+                f"Амплификатор • {player_data['weapons']['equipped'] if player_data['weapons']['equipped'] else 'пусто'}\n"
+                f"Баланс • {player_data['progression']['money']} денни"
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
@@ -88,7 +88,7 @@ class ProfileSystem:
                 f"🗡️ Пробивание: {stats['PEN']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
                 f"\n"
-                f"Видеокассеты • 📼 {player_data['decoder']['videotapes']}\n"
+                f"Видеокассеты • 📼 {player_data['gacha'][GACHA_CURRENCY_NAME]}\n"
                 f"Очки характеристик • 🧩 {player_data['stats']['points']}"
             )
             return

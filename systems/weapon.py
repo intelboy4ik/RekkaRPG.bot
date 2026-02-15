@@ -1,24 +1,24 @@
-from config import is_admin, AMPLIFIER_POSSIBLE_STATS
+from config import is_admin, WEAPON_POSSIBLE_STATS
 
 
-class AmplifierSystem:
-    def __init__(self, bot, amplifiers, amplifierquery, players, playerquery, stats_system=None):
+class WeaponSystem:
+    def __init__(self, bot, weapons, weaponqueery, players, playerquery, stats_system=None):
         self.bot = bot
-        self.amplifiers = amplifiers
-        self.AmplifierQuery = amplifierquery
+        self.weapons = weapons
+        self.WeaponQuery = weaponqueery
         self.players = players
         self.PlayerQuery = playerquery
         self.stats_system = stats_system
 
     def register_handlers(self):
-        self.bot.message_handler(commands=["addamplifier"])(self.add_amplifier)
-        self.bot.message_handler(commands=["removeamplifier"])(self.remove_amplifier)
-        self.bot.message_handler(commands=["equip"])(self.equip_amplifier)
-        self.bot.message_handler(commands=["unequip"])(self.unequip_amplifier)
+        self.bot.message_handler(commands=["addweapon"])(self.add_weapon)
+        self.bot.message_handler(commands=["removeweapon"])(self.remove_weapon)
+        self.bot.message_handler(commands=["equip"])(self.equip_weapon)
+        self.bot.message_handler(commands=["unequip"])(self.unequip_weapon)
         self.bot.message_handler(commands=["inventory"])(self.open_inventory)
-        self.bot.message_handler(commands=["amplifiersinfo"])(self.info)
+        self.bot.message_handler(commands=["weaponsinfo"])(self.info)
 
-    def add_amplifier(self, message):
+    def add_weapon(self, message):
         if not is_admin(message.from_user.id):
             self.bot.reply_to(message, "У вас нет прав для использования этой команды.")
             return
@@ -29,7 +29,7 @@ class AmplifierSystem:
                 message,
                 "Неверный формат команды!"
                 "\n\n"
-                "Используйте: /addamplifier <название> <атака> <характеристика> <значение> <тир> <цена>"
+                "Используйте: /addweapon <название> <атака> <характеристика> <значение> <тир> <цена>"
             )
             return
 
@@ -37,19 +37,19 @@ class AmplifierSystem:
         attack = int(parts[2])
 
         stat = parts[3].upper()
-        if stat not in AMPLIFIER_POSSIBLE_STATS:
+        if stat not in WEAPON_POSSIBLE_STATS:
             self.bot.reply_to(
                 message,
-                f"Неверная характеристика! Допустимые характеристики: {', '.join(AMPLIFIER_POSSIBLE_STATS)}"
+                f"Неверная характеристика! Допустимые характеристики: {', '.join(WEAPON_POSSIBLE_STATS)}"
             )
             return
         stat_value = int(parts[4])
 
-        tier = parts[5].upper()
-        if tier not in ["B", "A", "S"]:
+        rank = parts[5].upper()
+        if rank not in ["B", "A", "S"]:
             self.bot.reply_to(
                 message,
-                "Неверный тир! Допустимые тиры: B, A, S"
+                "Неверный тир! Допустимые ранги: B, A, S"
             )
             return
 
@@ -59,30 +59,30 @@ class AmplifierSystem:
         attr_bonus = None
 
         if len(parts) == 9:
-            attr_name = parts[8]
-            attr_bonus = parts[9]
+            attr_name = parts[7]
+            attr_bonus = int(parts[8])
 
-        if self.amplifiers.get(self.AmplifierQuery.name == name):
+        if self.weapons.get(self.WeaponQuery.name == name):
             self.bot.reply_to(message, "Амплификатор с таким именем уже существует!")
             return
 
-        amplifier_stats = {
+        weapon_stats = {
             "ATK": attack,
             stat: stat_value,
         }
-        self.amplifiers.insert({
+        self.weapons.insert({
             "name": name,
-            "stats": amplifier_stats,
+            "stats": weapon_stats,
             "attribute": {
                 "name": attr_name,
                 "bonus": attr_bonus,
             },
             "cost": cost,
-            "tier": tier
+            "rank": rank
         })
         self.bot.reply_to(message, f"Амплификатор {name} успешно добавлен.")
 
-    def remove_amplifier(self, message):
+    def remove_weapon(self, message):
         if not is_admin(message.from_user.id):
             self.bot.reply_to(message, "У вас нет прав для использования этой команды.")
             return
@@ -91,21 +91,21 @@ class AmplifierSystem:
         if len(parts) != 2:
             self.bot.reply_to(
                 message,
-                "Неверный формат команды! Используйте: /removeamplifier <название>"
+                "Неверный формат команды! Используйте: /removeweapon <название>"
             )
             return
 
         name = parts[1].replace("_", " ")
 
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == name)
-        if not amplifier:
+        weapons = self.weapons.get(self.WeaponQuery.name == name)
+        if not weapons:
             self.bot.reply_to(message, "Амплификатор с таким именем не найден!")
             return
 
-        self.amplifiers.remove(self.AmplifierQuery.name == name)
+        self.weapons.remove(self.WeaponQuery.name == name)
         self.bot.reply_to(message, f"Амплификатор {name} успешно удален.")
 
-    def equip_amplifier(self, message):
+    def equip_weapon(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
         if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
@@ -115,41 +115,41 @@ class AmplifierSystem:
 
         parts = message.text.split(" ")
 
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == " ".join(parts[1:]))
-        if not amplifier:
+        weapons = self.weapons.get(self.WeaponQuery.name == " ".join(parts[1:]))
+        if not weapons:
             self.bot.reply_to(message, "Такого амплификатора не существует!")
             return
 
-        if amplifier["name"] not in player_data["amplifiers"]["owned"]:
+        if weapons["name"] not in player_data["weapons"]["owned"]:
             self.bot.reply_to(message, "У вас нет этого амплификатора в инвентаре!")
             return
 
-        if player_data["amplifiers"]["equipped"]:
+        if player_data["weapons"]["equipped"]:
             self.bot.reply_to(message, "Сначала снимите текущий амплификатор с помощью команды /unequip")
             return
 
-        if amplifier['attribute']['name'] == player_data["attribute"]:
-            player_stats["ATTR.DMG"] = amplifier['attribute']['bonus']
+        if weapons['attribute']['name'] == player_data["attribute"]:
+            player_stats["ATTR.DMG"] = weapons['attribute']['bonus']
 
-        for key, value in amplifier["stats"].items():
+        for key, value in weapons["stats"].items():
             match key:
                 case "ATK":
                     player_stats["base"]["ATK"] += value
-                case "CRIT.DMG" | "PEN" if amplifier['attribute']['name'] == player_data["attribute"]:
+                case "CRIT.DMG" | "PEN" if weapons['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) + value
-                case _ if amplifier['attribute']['name'] == player_data["attribute"]:
+                case _ if weapons['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) + value
 
-        player_data["amplifiers"]["equipped"] = amplifier["name"]
+        player_data["weapons"]["equipped"] = weapons["name"]
 
         self.players.update({
             "stats": player_data["stats"],
-            "amplifiers": player_data["amplifiers"]
+            "weapons": player_data["weapons"]
         }, self.PlayerQuery.uid == message.from_user.id)
 
-        self.bot.reply_to(message, f"Амплификатор {amplifier['name']} успешно экипирован!")
+        self.bot.reply_to(message, f"Амплификатор {weapons['name']} успешно экипирован!")
 
-    def unequip_amplifier(self, message):
+    def unequip_weapon(self, message):
         player_data = self.players.get(self.PlayerQuery.uid == message.from_user.id)
         if not player_data:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
@@ -157,39 +157,39 @@ class AmplifierSystem:
 
         player_stats = player_data["stats"]
 
-        if "equipped" not in player_data["amplifiers"] or not player_data["amplifiers"]["equipped"]:
+        if "equipped" not in player_data["weapons"] or not player_data["weapons"]["equipped"]:
             self.bot.reply_to(message, "У вас нет амплификатора!")
             return
 
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == player_data["amplifiers"]["equipped"])
-        if not amplifier:
+        weapons = self.weapons.get(self.WeaponQuery.name == player_data["weapons"]["equipped"])
+        if not weapons:
             self.bot.reply_to(message, "Экипированный амплификатор не найден!")
             return
 
-        if amplifier['attribute']['name'] == player_data["attribute"]:
-            player_stats["ATTR.DMG"] = amplifier['attribute']['bonus']
+        if weapons['attribute']['name'] == player_data["attribute"]:
+            player_stats["ATTR.DMG"] = weapons['attribute']['bonus']
 
-        for key, value in amplifier["stats"].items():
+        for key, value in weapons["stats"].items():
             match key:
                 case "ATK":
                     player_stats["base"]["ATK"] -= value
-                case "CRIT.DMG" | "PEN" if amplifier['attribute']['name'] == player_data["attribute"]:
+                case "CRIT.DMG" | "PEN" if weapons['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["flat"][key] = player_stats["modifiers"]["flat"].get(key, 0) - value
-                case _ if amplifier['attribute']['name'] == player_data["attribute"]:
+                case _ if weapons['attribute']['name'] == player_data["attribute"]:
                     player_stats["modifiers"]["percent"][key] = player_stats["modifiers"]["percent"].get(key, 0) - value
 
-        player_data["amplifiers"]["equipped"] = None
+        player_data["weapons"]["equipped"] = None
 
         self.players.update({
             "stats": player_data["stats"],
-            "amplifiers": player_data["amplifiers"]
+            "weapons": player_data["weapons"]
         }, self.PlayerQuery.uid == message.from_user.id)
 
-        self.bot.reply_to(message, f"Амплификатор {amplifier['name']} успешно снят!")
+        self.bot.reply_to(message, f"Амплификатор {weapons['name']} успешно снят!")
 
-    def format_amplifier_stats(self, amplifier_name):
-        amplifier = self.amplifiers.get(self.AmplifierQuery.name == amplifier_name)
-        stats = amplifier['stats']
+    def format_weapon_stats(self, weapon_name):
+        weapons = self.weapons.get(self.WeaponQuery.name == weapon_name)
+        stats = weapons['stats']
         atk = stats.get('ATK', 0)
 
         extra_stat = None
@@ -222,8 +222,8 @@ class AmplifierSystem:
             "physics": "💥"
         }
 
-        attr_name = amplifier["attribute"]["name"]
-        bonus = amplifier["attribute"]["bonus"]
+        attr_name = weapons["attribute"]["name"]
+        bonus = weapons["attribute"]["bonus"]
 
         emoji = attr_emojis.get(attr_name, "")
 
@@ -237,17 +237,17 @@ class AmplifierSystem:
             self.bot.reply_to(message, "У вас нет профиля! Создайте его с помощью команды /createprofile")
             return
 
-        owned_amplifiers = player_data["amplifiers"].get("owned", [])
-        if not owned_amplifiers:
+        owned_weapons = player_data["weapons"].get("owned", [])
+        if not owned_weapons:
             self.bot.reply_to(message, "Ваш инвентарь пуст!")
             return
 
         inventory_text = "_🎒 Ваш инвентарь_\n\n" + "\n".join(
             [
-                f"*{amplifier}*"
-                + (" (экипирован)" if amplifier == player_data["amplifiers"]["equipped"] else "")
-                + f"\n{self.format_amplifier_stats(amplifier)}\n"
-                for amplifier in owned_amplifiers
+                f"*{weapons}*"
+                + (" (экипирован)" if weapons == player_data["weapons"]["equipped"] else "")
+                + f"\n{self.format_weapon_stats(weapons)}\n"
+                for weapons in owned_weapons
             ]
         )
 

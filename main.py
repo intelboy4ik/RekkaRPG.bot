@@ -9,10 +9,10 @@ import config
 from systems.profile import ProfileSystem
 from systems.progression import ProgressionSystem
 from systems.duel import DuelSystem
-from systems.amplifier import AmplifierSystem
+from systems.weapon import WeaponSystem
 from systems.stats import StatsSystem
 from systems.store import StoreSystem
-from systems.decoder import DecoderSystem
+from systems.gacha import GachaSystem
 from systems.redeem import RedeemSystem
 
 from commands.base import BaseCommands
@@ -22,7 +22,7 @@ db = TinyDB("database.json", storage=JSONStorage)
 
 # Tables
 players = db.table("players")
-amplifiers = db.table("amplifiers")
+weapons = db.table("weapons")
 codes = db.table("codes")
 
 # Queries
@@ -39,11 +39,11 @@ bot = telebot.TeleBot(token=token)
 stats_system = StatsSystem(bot, players, PlayerQuery)
 profile_system = ProfileSystem(bot, players, PlayerQuery, stats_system)
 progression_system = ProgressionSystem(bot, players, PlayerQuery, stats_system)
-amplifier_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
+weapon_system = WeaponSystem(bot, weapons, AmplifierQuery, players, PlayerQuery, stats_system)
 duel_system = DuelSystem(bot, players, PlayerQuery, progression_system, stats_system)
-store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifier_system)
-decoder_system = DecoderSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
-redeem_system = RedeemSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, codes, CodeQuery)
+store_system = StoreSystem(bot, players, PlayerQuery, weapons, AmplifierQuery, weapon_system)
+gacha_system = GachaSystem(bot, players, PlayerQuery, weapons, AmplifierQuery)
+redeem_system = RedeemSystem(bot, players, PlayerQuery, weapons, AmplifierQuery, codes, CodeQuery)
 
 # Commands classes
 base_commands = BaseCommands(bot, players, PlayerQuery)
@@ -57,14 +57,14 @@ duel_system.register_handlers()
 # Internot system
 progression_system.register_handlers()
 
-# Amplifier system
-amplifier_system.register_handlers()
+# Weapon system
+weapon_system.register_handlers()
 
 # Store system
 store_system.register_handlers()
 
 # Decoder system
-decoder_system.register_handlers()
+gacha_system.register_handlers()
 
 # Redeem system
 redeem_system.register_handlers()
