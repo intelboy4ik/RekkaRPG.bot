@@ -93,8 +93,8 @@ class RedeemSystem:
         match redeem_code["type"]:
             case "videotape":
                 quantity = int(redeem_code["reward"])
-                player["channel"]["masterTapes"] += quantity
-                self.players.update({"channel": player["channel"]}, self.PlayerQuery.uid == message.from_user.id)
+                player["signal"]["masterTapes"] += quantity
+                self.players.update({"signal": player["signal"]}, self.PlayerQuery.uid == message.from_user.id)
                 self.bot.reply_to(message, f"Вы успешно получили {quantity} видеокассет!")
             case "denny":
                 amount = int(redeem_code["reward"])

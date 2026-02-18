@@ -15,13 +15,13 @@ class SignalSystem:
         self.s_rank_amplifiers = self.amplifiers.search(self.AmplifierQuery.rank == "S")
 
     def register_handlers(self):
-        self.bot.message_handler(commands=["signal"])(self.open_channel)
+        self.bot.message_handler(commands=["signal"])(self.open_signal)
         self.bot.callback_query_handler(
             func=lambda call: call.data in ["search_x1", "search_x10"]
         )(self.pull_callback)
         self.bot.message_handler(commands=["sgnlinfo"])(self.info)
 
-    def open_channel(self, message):
+    def open_signal(self, message):
         markup = types.InlineKeyboardMarkup()
         button_search_x1 = types.InlineKeyboardButton("🔍 Поиск (1x)", callback_data="search_x1")
         button_search_x10 = types.InlineKeyboardButton("🔍 Поиск (10x)", callback_data="search_x10")
@@ -54,7 +54,7 @@ class SignalSystem:
         }
 
         if call.data == "search_x1":
-            if player_data["channel"]["masterTapes"] < 1:
+            if player_data["signal"]["masterTapes"] < 1:
                 self.bot.answer_callback_query(
                     call.id,
                     "У вас недостаточно шифрокопий для поиска.",
@@ -76,7 +76,7 @@ class SignalSystem:
             )
             return
 
-        if player_data["channel"]["masterTapes"] < 10:
+        if player_data["signal"]["masterTapes"] < 10:
             self.bot.answer_callback_query(
                 call.id,
                 "У вас недостаточно шифрокопий для поиска сигнала.",
@@ -137,34 +137,34 @@ class SignalSystem:
     def calc_pull_res(self, call):
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
-        player["channel"]["masterTapes"] -= 1
-        player["channel"]["pulled"] += 1
+        player["signal"]["masterTapes"] -= 1
+        player["signal"]["pulled"] += 1
 
-        player["channel"]["guarantee"]["a-rank"] -= 1
-        player["channel"]["guarantee"]["s-rank"] -= 1
+        player["signal"]["guarantee"]["a-rank"] -= 1
+        player["signal"]["guarantee"]["s-rank"] -= 1
 
         dice = random.randint(1, 1000)
 
-        if dice <= 12 or player["channel"]["guarantee"]["s-rank"] <= 0:
+        if dice <= 12 or player["signal"]["guarantee"]["s-rank"] <= 0:
             amp = random.choice(self.s_rank_amplifiers)
 
             if amp["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amp["name"])
             else:
-                player["channel"]["masterTapes"] += 5
+                player["signal"]["masterTapes"] += 5
 
-            player["channel"]["guarantee"]["a-rank"] = 10
-            player["channel"]["guarantee"]["s-rank"] = 90
+            player["signal"]["guarantee"]["a-rank"] = 10
+            player["signal"]["guarantee"]["s-rank"] = 90
 
-        elif dice <= 140 or player["channel"]["guarantee"]["a-rank"] <= 0:
+        elif dice <= 140 or player["signal"]["guarantee"]["a-rank"] <= 0:
             amp = random.choice(self.a_rank_amplifiers)
 
             if amp["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amp["name"])
             else:
-                player["channel"]["masterTapes"] += 2
+                player["signal"]["masterTapes"] += 2
 
-            player["channel"]["guarantee"]["a-rank"] = 10
+            player["signal"]["guarantee"]["a-rank"] = 10
 
         else:
             amp = random.choice(self.b_rank_amplifiers)
@@ -176,7 +176,7 @@ class SignalSystem:
 
         self.players.update(
             {
-                "channel": player["channel"],
+                "signal": player["signal"],
                 "amplifiers": player["amplifiers"],
                 "interknot": player["interknot"],
             },

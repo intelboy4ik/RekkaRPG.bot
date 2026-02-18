@@ -49,7 +49,7 @@ class ProfileSystem:
                     "owned": [],
                     "equipped": None
                 },
-                "channel": {
+                "signal": {
                     "masterTapes": 45,
                     "pulled": 0,
                     "guarantee": {
@@ -88,7 +88,7 @@ class ProfileSystem:
                 f"🗡️ Пробивание: {stats['PEN']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
                 f"\n"
-                f"Шифрокопии • 📼 {player_data['channel']["masterTapes"]}\n"
+                f"Шифрокопии • 📼 {player_data['signal']["masterTapes"]}\n"
                 f"Очки характеристик • 🧩 {player_data['stats']['points']}"
             )
             return

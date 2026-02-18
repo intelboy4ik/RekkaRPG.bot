@@ -42,7 +42,7 @@ interknot_system = InterknotSystem(bot, players, PlayerQuery, stats_system)
 amplifiers_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
 duel_system = DuelSystem(bot, players, PlayerQuery, interknot_system, stats_system)
 store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifiers_system)
-channel_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
+signal_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
 redeem_system = RedeemSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, codes, CodeQuery)
 
 # Commands classes
@@ -64,7 +64,7 @@ amplifiers_system.register_handlers()
 store_system.register_handlers()
 
 # Decoder system
-channel_system.register_handlers()
+signal_system.register_handlers()
 
 # Redeem system
 redeem_system.register_handlers()
