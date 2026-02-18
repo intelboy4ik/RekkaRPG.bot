@@ -177,19 +177,22 @@ class DuelSystem:
         if call.data == "player_attacks":
             enemy = duel["initiator"] if duel["duelist"]["ID"] == player_data["uid"] else duel["duelist"]
 
-            damage, shock_damage, is_crit, is_burning, is_freeze, is_miss = self.calculate_damage(player_data, enemy["DEF"])
+            damage, shock_damage, burn_damage, freeze_damage, ether_heal, is_miss, is_crit = self.calculate_damage(player_data, enemy["DEF"])
 
             extra_text = "\n\n"
             if shock_damage:
                 extra_text = f"\n⚡️{int(shock_damage)} шока!\n\n"
 
-            if is_burning:
-                extra_text = f"\n🔥 Прожарка! Ход остаётся у вас!\n\n"
+            if burn_damage:
+                extra_text = f"\n🔥 Прожарка {burn_damage}! Ход остаётся у вас!\n\n"
                 duel["turn"] = player_data["uid"]
                 next_turn = self.players.get(self.PlayerQuery.uid == duel["turn"])
 
-            if is_freeze:
-                extra_text = f"\n❄️ Мороз снизил устойчивость противника к криту!\n\n"
+            if freeze_damage:
+                extra_text = f"\n❄️ Мороз снизил устойчивость противника к криту! {freeze_damage}\n\n"
+                
+            if ether_heal:
+                extra_text = f"\n✨ Вы восстановили {int(ether_heal)} здоровья!\n\n"
 
             if duel["initiator"]["ID"] == player_data["uid"]:
                 duel["duelist"]["HP"] -= int(damage)
@@ -313,15 +316,17 @@ class DuelSystem:
         final_defense = (enemy_def + base_defense - player_stats["PEN"]) / 1000
 
         damage = damage_multiplier * player_stats["ATK"] * (1 - final_defense)
-        shock_damage = None
 
         player_attr = player_data["attribute"]
 
         dice = random.randint(1, 36)
         is_crit = False
-        is_burning = False
-        is_freeze = False
         is_miss = False
+        
+        burn_damage = None
+        freeze_damage = None
+        shock_damage = None
+        ether_heal = None
 
         match dice:
             case 1 | 2 | 3 | 4 | 5:
@@ -331,21 +336,22 @@ class DuelSystem:
                 damage *= 1 + player_stats["CRIT.DMG"] / 100
                 is_crit = True
             case 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 if player_attr == "ice":
-                damage *= (1 + player_stats["ATTR.DMG"] / 100) + player_stats["CRIT.DMG"] / 100
-                is_freeze = True
+                freeze_damage =  damage * (1 + player_stats["ATTR.BNS"] / 100) + player_stats["CRIT.DMG"] / 100
                 is_crit = True
 
         match player_attr:
             case "physics":
-                damage *= 1 + player_stats["ATTR.DMG"] / 1000
+                damage *= 1 + player_stats["ATTR.BNS"] / 1000
             case "electricity":
                 shock_multiplier = random.randint(MIN_SHOCK_MULTIPLIER, MAX_SHOCK_MULTIPLIER)
-                shock_damage = shock_multiplier * player_stats["ATTR.DMG"] / 10
+                shock_damage = shock_multiplier * player_stats["ATTR.BNS"] / 10
                 damage += shock_damage
             case "fire":
                 dice = random.randint(1, 6)
                 if dice == 6:
-                    is_burning = True
-                    damage *= 1 + player_stats["ATTR.DMG"] / 1000
+                    burn_damage = damage * (1 + player_stats["ATTR.BNS"] / 1000)
+            case "ether":
+                ether_heal = player_stats["HP"] * (0.01 + player_stats["ATTR.BNS"] / 1000)
+            
 
-        return damage, shock_damage, is_crit, is_burning, is_freeze, is_miss
+        return damage, shock_damage, burn_damage, freeze_damage, ether_heal, is_miss, is_crit,

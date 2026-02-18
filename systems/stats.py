@@ -77,9 +77,14 @@ class StatsSystem:
             callback_data="set_attribute_ice"
         )
 
+        ether_attr_button = types.InlineKeyboardButton(
+            text="✨",
+            callback_data="set_attribute_ether"
+        )
+
         markup = types.InlineKeyboardMarkup()
-        markup.row(physics_attr_button, electricity_attr_button)
-        markup.row(fire_attr_button, ice_attr_button)
+        markup.row(physics_attr_button, ether_attr_button)
+        markup.row(fire_attr_button, electricity_attr_button, ice_attr_button)
 
         self.bot.send_dice(message.chat.id, message_thread_id=message.message_thread_id)
         self.bot.reply_to(
@@ -97,6 +102,7 @@ class StatsSystem:
             "*⚡️ Электрический* - вызывает шок наносящий доп. урон.\n"
             "*🔥 Огненный* - с шансом 1/6 поджигает противника вынуждая пропустить ход.\n"
             "*❄️ Ледяной* - повышает шанс критического попадания.\n"
+            "*✨ Эфирный* - восстанавливает % от максимального здоровья при каждом ударе."
             ,
             parse_mode="Markdown",
             reply_markup=markup

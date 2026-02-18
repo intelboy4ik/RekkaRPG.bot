@@ -41,10 +41,7 @@ BASE_ATK = int(os.getenv("BASE_ATK"))
 BASE_CRIT_DMG = int(os.getenv("BASE_CRIT_DMG"))
 
 # Equipment consts
-WEAPON_POSSIBLE_STATS = list(map(str, os.getenv("WEAPON_POSSIBLE_STATS").split(",")))
-
-# Gacha consts
-GACHA_CURRENCY_NAME = os.getenv("GACHA_CURRENCY_NAME")
+AMPLIFIER_POSSIBLE_STATS = list(map(str, os.getenv("AMPLIFIER_POSSIBLE_STATS").split(",")))
 
 # Admin check function
 def is_admin(user_id):

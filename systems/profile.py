@@ -1,4 +1,4 @@
-from config import is_admin, GACHA_CURRENCY_NAME
+from config import is_admin
 
 
 class ProfileSystem:
@@ -20,9 +20,9 @@ class ProfileSystem:
                 "uid": message.from_user.id,
                 "username": f"@{message.from_user.username}",
                 "role": "не задана",
-                "progression": {
+                "interknot": {
                     "lv": 1,
-                    "money": 0,
+                    "denny": 0,
                     "posts": 0,
                     "duel_wins": 0,
                     "last_daily": None
@@ -36,7 +36,7 @@ class ProfileSystem:
                             "ATK": 0,
                             "PEN": 0,
                             "CRIT.DMG": 0,
-                            "ATTR.DMG": 0,
+                            "ATTR.BNS": 0,
                         },
                     "modifiers":
                         {
@@ -45,12 +45,12 @@ class ProfileSystem:
                         }
                 },
                 "attribute": None,
-                "weapons": {
+                "amplifiers": {
                     "owned": [],
                     "equipped": None
                 },
-                "gacha": {
-                    GACHA_CURRENCY_NAME: 45,
+                "channel": {
+                    "videotapes": 45,
                     "pulled": 0,
                     "guarantee": {
                         "a-rank": 10,
@@ -78,9 +78,9 @@ class ProfileSystem:
                 f"Игрок | {player_data['username']}"
                 f"\n\n"
                 f"Роль • {player_data['role']}\n"
-                f"Ур. Интернота • {player_data['progression']['lv']}\n"
-                f"Амплификатор • {player_data['weapons']['equipped'] if player_data['weapons']['equipped'] else 'пусто'}\n"
-                f"Баланс • {player_data['progression']['money']} денни"
+                f"Ур. Интернота • {player_data['interknot']['lv']}\n"
+                f"Амплификатор • {player_data['amplifiers']['equipped'] if player_data['amplifiers']['equipped'] else 'пусто'}\n"
+                f"Баланс • {player_data['interknot']['denny']} денни"
                 f"\n\n"
                 f"❤️‍🩹 Здоровье: {stats['HP']}\n"
                 f"🛡️ Защита: {stats['DEF']}\n"
@@ -88,7 +88,7 @@ class ProfileSystem:
                 f"🗡️ Пробивание: {stats['PEN']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
                 f"\n"
-                f"Видеокассеты • 📼 {player_data['gacha'][GACHA_CURRENCY_NAME]}\n"
+                f"Шифрокопии • 📼 {player_data['channel']["videotapes"]}\n"
                 f"Очки характеристик • 🧩 {player_data['stats']['points']}"
             )
             return

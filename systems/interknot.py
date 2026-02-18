@@ -4,7 +4,7 @@ from datetime import date
 from config import MAIN_GROUP_ID, LV_UP_THREAD_ID, ROLEPLAY_THREAD_ID, POSTS_PER_LV, MAX_LV, MAIN_THREAD_ID
 
 
-class ProgressionSystem:
+class InterknotSystem:
     def __init__(self, bot, players, playerquery, stats_system=None):
         self.bot = bot
         self.players = players
@@ -22,14 +22,14 @@ class ProgressionSystem:
         if not player_data:
             return
 
-        progression = player_data["progression"]
-        progression["posts"] += 1
+        interknot = player_data["interknot"]
+        interknot["posts"] += 1
 
         # всегда сохраняем посты
-        self.players.update({"progression": progression}, self.PlayerQuery.uid == player_data["uid"])
+        self.players.update({"interknot": interknot}, self.PlayerQuery.uid == player_data["uid"])
 
-        if progression["posts"] % POSTS_PER_LV == 0:
-            if self.up_progression_lv(player_data):
+        if interknot["posts"] % POSTS_PER_LV == 0:
+            if self.up_interknot_lv(player_data):
                 self.send_congrats_message(player_data, "за активность в ролевом чате")
 
     def daily_reward(self, message):
@@ -43,28 +43,28 @@ class ProgressionSystem:
             return
 
         today = date.today().isoformat()
-        last_daily = player_data["progression"].get("last_daily")
+        last_daily = player_data["interknot"].get("last_daily")
 
         if last_daily == today:
             self.bot.reply_to(message, "Вы уже получили ежедневную награду сегодня! Приходите завтра.")
             return
 
-        money_bonus = random.randint(120, 600)
-        player_data["progression"]["money"] += money_bonus
-        player_data["progression"]["last_daily"] = today
+        denny_bonus = random.randint(120, 600)
+        player_data["interknot"]["denny"] += denny_bonus
+        player_data["interknot"]["last_daily"] = today
 
-        self.players.update({"progression": player_data["progression"]}, self.PlayerQuery.uid == player_data["uid"])
-        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{money_bonus} денни")
+        self.players.update({"interknot": player_data["interknot"]}, self.PlayerQuery.uid == player_data["uid"])
+        self.bot.reply_to(message, f"Небольшая награда за ежедневную отметку в чате Интернота!\n\n💰{denny_bonus} денни")
 
-    def up_progression_lv(self, player_data) -> bool:
-        progression = player_data["progression"]
+    def up_interknot_lv(self, player_data) -> bool:
+        interknot = player_data["interknot"]
 
-        if progression["lv"] >= MAX_LV:
+        if interknot["lv"] >= MAX_LV:
             return False
 
-        progression["lv"] += 1
-        self.players.update({"progression": progression}, self.PlayerQuery.uid == player_data["uid"])
-        self.stats_system.give_point_to_player(player_data, progression["lv"])
+        interknot["lv"] += 1
+        self.players.update({"interknot": interknot}, self.PlayerQuery.uid == player_data["uid"])
+        self.stats_system.give_point_to_player(player_data, interknot["lv"])
         return True
 
     def send_congrats_message(self, player_data, reason):
