@@ -12,7 +12,7 @@ from systems.duel import DuelSystem
 from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
 from systems.store import StoreSystem
-from systems.channel import SignalSystem
+from systems.channel import ChannelSystem
 from systems.redeem import RedeemSystem
 
 from commands.base import BaseCommands
@@ -42,7 +42,7 @@ progression_system = InterknotSystem(bot, players, PlayerQuery, stats_system)
 amplifiers_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
 duel_system = DuelSystem(bot, players, PlayerQuery, progression_system, stats_system)
 store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifiers_system)
-channel_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
+channel_system = ChannelSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
 redeem_system = RedeemSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, codes, CodeQuery)
 
 # Commands classes
