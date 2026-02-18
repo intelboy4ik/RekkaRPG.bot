@@ -41,7 +41,7 @@ class StatsSystem:
             "CRIT.DMG": sum(
                 sorted(random.randint(MIN_CRIT_DMG_PULL, MAX_CRIT_DMG_PULL) for _ in range(4))[1:]) + BASE_CRIT_DMG,
             "PEN": 0,
-            "ATTR.DMG": 0,
+            "ATTR.BNS": 0,
         }
 
         final_stats = {

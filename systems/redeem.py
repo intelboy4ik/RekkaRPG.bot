@@ -32,8 +32,8 @@ class RedeemSystem:
 
         code_reward.replace("_", " ")
 
-        if code_type not in ["videotape", "money", "amplifier"]:
-            self.bot.reply_to(message, "Неверный тип кода! Допустимые типы: videotape, money, amplifier")
+        if code_type not in ["videotape", "denny", "amplifier"]:
+            self.bot.reply_to(message, "Неверный тип кода! Допустимые типы: videotape, denny, amplifier")
             return
 
         if self.codes.get(self.CodeQuery.code == code):
@@ -93,13 +93,13 @@ class RedeemSystem:
         match redeem_code["type"]:
             case "videotape":
                 quantity = int(redeem_code["reward"])
-                player["decoder"]["videotapes"] += quantity
-                self.players.update({"decoder": player["decoder"]}, self.PlayerQuery.uid == message.from_user.id)
+                player["channel"]["masterTapes"] += quantity
+                self.players.update({"channel": player["channel"]}, self.PlayerQuery.uid == message.from_user.id)
                 self.bot.reply_to(message, f"Вы успешно получили {quantity} видеокассет!")
-            case "money":
+            case "denny":
                 amount = int(redeem_code["reward"])
-                player["progression"]["money"] += amount
-                self.players.update({"progression": player["progression"]}, self.PlayerQuery.uid == message.from_user.id)
+                player["interknot"]["denny"] += amount
+                self.players.update({"interknot": player["interknot"]}, self.PlayerQuery.uid == message.from_user.id)
                 self.bot.reply_to(message, f"Вы успешно получили {amount} денни!")
             case "amplifier":
                 amplifier_name = redeem_code["reward"]

@@ -7,12 +7,12 @@ from config import MAIN_GROUP_ID, DUEL_THREAD_ID, DUEL_WINS_PER_LV, MIN_DMG_MULT
 
 
 class DuelSystem:
-    def __init__(self, bot, players, playerquery, progression_system, stats_system=None):
+    def __init__(self, bot, players, playerquery, interknot_system, stats_system=None):
         self.bot = bot
         self.players = players
         self.PlayerQuery = playerquery
         self.active_duels = {}
-        self.progression_system = progression_system
+        self.interknot_system = interknot_system
         self.stats_system = stats_system
 
     def register_handlers(self):
@@ -251,22 +251,22 @@ class DuelSystem:
             winner = "initiator" if duel["duelist"]["HP"] <= 0 else "duelist"
             winner_user_data = self.players.get(self.PlayerQuery.uid == duel[winner]["ID"])
 
-            winner_user_data["progression"]["duel_wins"] += 1
+            winner_user_data["interknot"]["duel_wins"] += 1
 
             wins_denny = random.randint(125, 300)
-            winner_user_data["progression"]["denny"] += wins_denny
+            winner_user_data["interknot"]["denny"] += wins_denny
 
             self.players.update({
-                "progression": winner_user_data["progression"]
+                "interknot": winner_user_data["interknot"]
             },
                 self.PlayerQuery.uid == winner_user_data["uid"]
             )
 
-            if winner_user_data["progression"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
-                self.progression_system.up_progression_lv(
+            if winner_user_data["interknot"]["duel_wins"] % DUEL_WINS_PER_LV == 0:
+                self.interknot_system.up_interknot_lv(
                     winner_user_data
                 )
-                self.progression_system.send_congrats_message(
+                self.interknot_system.send_congrats_message(
                     winner_user_data,
                     "за победы в дуэлях"
                 )

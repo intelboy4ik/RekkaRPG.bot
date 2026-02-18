@@ -219,7 +219,8 @@ class AmplifierSystem:
             "fire": "🔥",
             "ice": "❄️",
             "electricity": "⚡️",
-            "physics": "💥"
+            "physics": "💥",
+            "ether": "✨"
         }
 
         attr_name = weapons["attribute"]["name"]

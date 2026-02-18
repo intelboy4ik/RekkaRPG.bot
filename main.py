@@ -12,7 +12,7 @@ from systems.duel import DuelSystem
 from systems.amplifier import AmplifierSystem
 from systems.stats import StatsSystem
 from systems.store import StoreSystem
-from systems.channel import ChannelSystem
+from systems.signals import SignalSystem
 from systems.redeem import RedeemSystem
 
 from commands.base import BaseCommands
@@ -38,11 +38,11 @@ bot = telebot.TeleBot(token=token)
 # Systems classes
 stats_system = StatsSystem(bot, players, PlayerQuery)
 profile_system = ProfileSystem(bot, players, PlayerQuery, stats_system)
-progression_system = InterknotSystem(bot, players, PlayerQuery, stats_system)
+interknot_system = InterknotSystem(bot, players, PlayerQuery, stats_system)
 amplifiers_system = AmplifierSystem(bot, amplifiers, AmplifierQuery, players, PlayerQuery, stats_system)
-duel_system = DuelSystem(bot, players, PlayerQuery, progression_system, stats_system)
+duel_system = DuelSystem(bot, players, PlayerQuery, interknot_system, stats_system)
 store_system = StoreSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, amplifiers_system)
-channel_system = ChannelSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
+channel_system = SignalSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery)
 redeem_system = RedeemSystem(bot, players, PlayerQuery, amplifiers, AmplifierQuery, codes, CodeQuery)
 
 # Commands classes
@@ -55,7 +55,7 @@ profile_system.register_handlers()
 duel_system.register_handlers()
 
 # Internot system
-progression_system.register_handlers()
+interknot_system.register_handlers()
 
 # Weapon system
 amplifiers_system.register_handlers()

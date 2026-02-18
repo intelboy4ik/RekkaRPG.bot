@@ -50,7 +50,7 @@ class ProfileSystem:
                     "equipped": None
                 },
                 "channel": {
-                    "videotapes": 45,
+                    "masterTapes": 45,
                     "pulled": 0,
                     "guarantee": {
                         "a-rank": 10,
@@ -88,7 +88,7 @@ class ProfileSystem:
                 f"🗡️ Пробивание: {stats['PEN']}\n"
                 f"💥 Крит. урон: {stats['CRIT.DMG']}%\n"
                 f"\n"
-                f"Шифрокопии • 📼 {player_data['channel']["videotapes"]}\n"
+                f"Шифрокопии • 📼 {player_data['channel']["masterTapes"]}\n"
                 f"Очки характеристик • 🧩 {player_data['stats']['points']}"
             )
             return

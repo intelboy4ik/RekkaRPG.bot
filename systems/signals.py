@@ -3,7 +3,7 @@ import random
 from telebot import types
 
 
-class ChannelSystem:
+class SignalSystem:
     def __init__(self, bot, players, playerquery, amplifiers, amplifierquery):
         self.bot = bot
         self.players = players
@@ -15,11 +15,11 @@ class ChannelSystem:
         self.s_rank_amplifiers = self.amplifiers.search(self.AmplifierQuery.rank == "S")
 
     def register_handlers(self):
-        self.bot.message_handler(commands=["openchannel"])(self.open_channel)
+        self.bot.message_handler(commands=["signal"])(self.open_channel)
         self.bot.callback_query_handler(
             func=lambda call: call.data in ["search_x1", "search_x10"]
         )(self.pull_callback)
-        self.bot.message_handler(commands=["channelinfo"])(self.info)
+        self.bot.message_handler(commands=["sgnlinfo"])(self.info)
 
     def open_channel(self, message):
         markup = types.InlineKeyboardMarkup()
@@ -54,7 +54,7 @@ class ChannelSystem:
         }
 
         if call.data == "search_x1":
-            if player_data["channel"]["videotapes"] < 1:
+            if player_data["channel"]["masterTapes"] < 1:
                 self.bot.answer_callback_query(
                     call.id,
                     "У вас недостаточно шифрокопий для поиска.",
@@ -76,7 +76,7 @@ class ChannelSystem:
             )
             return
 
-        if player_data["channel"]["videotapes"] < 10:
+        if player_data["channel"]["masterTapes"] < 10:
             self.bot.answer_callback_query(
                 call.id,
                 "У вас недостаточно шифрокопий для поиска сигнала.",
@@ -137,7 +137,7 @@ class ChannelSystem:
     def calc_pull_res(self, call):
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
-        player["channel"]["videotapes"] -= 1
+        player["channel"]["masterTapes"] -= 1
         player["channel"]["pulled"] += 1
 
         player["channel"]["guarantee"]["a-rank"] -= 1
@@ -151,7 +151,7 @@ class ChannelSystem:
             if amp["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amp["name"])
             else:
-                player["channel"]["videotapes"] += 5
+                player["channel"]["masterTapes"] += 5
 
             player["channel"]["guarantee"]["a-rank"] = 10
             player["channel"]["guarantee"]["s-rank"] = 90
@@ -162,7 +162,7 @@ class ChannelSystem:
             if amp["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amp["name"])
             else:
-                player["channel"]["videotapes"] += 2
+                player["channel"]["masterTapes"] += 2
 
             player["channel"]["guarantee"]["a-rank"] = 10
 
@@ -172,7 +172,7 @@ class ChannelSystem:
             if amp["name"] not in player["amplifiers"]["owned"]:
                 player["amplifiers"]["owned"].append(amp["name"])
             else:
-                player["interknot"]["money"] += 35
+                player["interknot"]["denny"] += 35
 
         self.players.update(
             {

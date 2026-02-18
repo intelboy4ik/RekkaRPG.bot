@@ -16,7 +16,7 @@ class StoreSystem:
         self.bot.message_handler(commands=["store"])(self.open_store)
         self.bot.callback_query_handler(func=lambda call: call.data.startswith("buy_weapon_"))(
             self.buy_weapon_callback)
-        self.bot.callback_query_handler(func=lambda call: call.data in [f"buy_{"videotapes"}_1", f"buy_{"videotapes"}_10"])(
+        self.bot.callback_query_handler(func=lambda call: call.data in [f"buy_{"masterTapes"}_1", f"buy_{"masterTapes"}_10"])(
             self.buy_videotape_callback)
 
     def open_store(self, message):
@@ -31,11 +31,11 @@ class StoreSystem:
 
         one_pull_button = types.InlineKeyboardButton(
             text="📼 1 кассета",
-            callback_data=f"buy_{"videotapes"}_1"
+            callback_data=f"buy_{"masterTapes"}_1"
         )
         ten_pull_button = types.InlineKeyboardButton(
             text="📼 10 кассет",
-            callback_data=f"buy_{"videotapes"}_10"
+            callback_data=f"buy_{"masterTapes"}_10"
         )
         markup.row(one_pull_button, ten_pull_button)
 
@@ -99,7 +99,7 @@ class StoreSystem:
         self.bot.answer_callback_query(call.id, f"Вы успешно купили амплификатор {weapon_name}!", show_alert=True)
 
     def buy_videotape_callback(self, call):
-        quantity = 1 if call.data == f"buy_{"videotapes"}_1" else 10
+        quantity = 1 if call.data == f"buy_{"masterTapes"}_1" else 10
         cost = 360 * quantity
 
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
@@ -121,7 +121,7 @@ class StoreSystem:
             return
 
         player["interknot"]["denny"] -= cost
-        player["channel"]["videotapes"] += quantity
+        player["channel"]["masterTapes"] += quantity
 
         self.players.update({
             "interknot": player["interknot"],
