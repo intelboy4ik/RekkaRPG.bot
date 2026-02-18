@@ -20,7 +20,7 @@ class GachaSystem:
         self.bot.message_handler(commands=["decoder"])(self.open_signal)
         self.bot.callback_query_handler(
             func=lambda call: call.data in ["pull_x1", "pull_x10"]
-        )(self.try_decode_callback)
+        )(self.pull_callback)
         self.bot.message_handler(commands=["dcoderinfo"])(self.info)
 
     def open_signal(self, message):
@@ -37,7 +37,7 @@ class GachaSystem:
             parse_mode="Markdown"
         )
 
-    def try_decode_callback(self, call):
+    def pull_callback(self, call):
         player_data = self.players.get(self.PlayerQuery.uid == call.from_user.id)
         if not player_data:
             self.bot.answer_callback_query(
@@ -49,7 +49,7 @@ class GachaSystem:
 
         result = []
 
-        if call.data == "try_decode_x1":
+        if call.data == "pull_x1":
             if player_data["gacha"][GACHA_CURRENCY_NAME] < 1:
                 self.bot.answer_callback_query(
                     call.id,
@@ -57,7 +57,7 @@ class GachaSystem:
                     show_alert=True,
                 )
                 return
-            result.append(self.calc_decode_res(call))
+            result.append(self.calc_pull_res(call))
             self.bot.send_message(
                 call.message.chat.id,
                 "_🔍 Вы провели расшифровку одной видеокассеты._"
@@ -79,8 +79,16 @@ class GachaSystem:
                 show_alert=True,
             )
             return
+
         for _ in range(10):
-            result.append(self.calc_decode_res(call))
+            result.append(self.calc_pull_res(call))
+
+        rank_emojis = {
+            "S": "🔶",
+            "A": "🔸",
+            "B": "🔹"
+        }
+
         self.bot.send_message(
             call.message.chat.id,
             "_🔍 Вы провели расшифровку десяти видеокассет._"
@@ -88,7 +96,7 @@ class GachaSystem:
             "*Результаты*"
             "\n" +
             "\n".join(
-                f"{'🔶' if amp['rank'] == 'S' else '🔸' if amp['rank'] == "A" else '🔹'} {amp['name']}" for amp in result),
+                f"{rank_emojis[weapon["rank"]]} {weapon['name']}" for weapon in result),
             parse_mode="Markdown",
             message_thread_id=call.message.message_thread_id
         )
@@ -128,7 +136,7 @@ class GachaSystem:
             parse_mode="Markdown"
         )
 
-    def calc_decode_res(self, call):
+    def calc_pull_res(self, call):
         player = self.players.get(self.PlayerQuery.uid == call.from_user.id)
 
         player["gacha"][GACHA_CURRENCY_NAME] -= 1
@@ -140,10 +148,10 @@ class GachaSystem:
         dice = random.randint(1, 1000)
 
         if dice <= 12 or player["gacha"]["guarantee"]["s-rank"] <= 0:
-            amplifier = random.choice(self.s_rank_weapons)
+            weapon = random.choice(self.s_rank_weapons)
 
-            if amplifier["name"] not in player["weapons"]["owned"]:
-                player["weapons"]["owned"].append(amplifier["name"])
+            if weapon["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(weapon["name"])
             else:
                 player["gacha"][GACHA_CURRENCY_NAME] += 5
 
@@ -151,20 +159,20 @@ class GachaSystem:
             player["gacha"]["guarantee"]["s-rank"] = 90
 
         elif dice <= 140 or player["gacha"]["guarantee"]["a-rank"] <= 0:
-            amplifier = random.choice(self.a_rank_weapons)
+            weapon = random.choice(self.a_rank_weapons)
 
-            if amplifier["name"] not in player["weapons"]["owned"]:
-                player["weapons"]["owned"].append(amplifier["name"])
+            if weapon["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(weapon["name"])
             else:
                 player["gacha"][GACHA_CURRENCY_NAME] += 2
 
             player["gacha"]["guarantee"]["a-rank"] = 10
 
         else:
-            amplifier = random.choice(self.b_rank_weapons)
+            weapon = random.choice(self.b_rank_weapons)
 
-            if amplifier["name"] not in player["weapons"]["owned"]:
-                player["weapons"]["owned"].append(amplifier["name"])
+            if weapon["name"] not in player["weapons"]["owned"]:
+                player["weapons"]["owned"].append(weapon["name"])
             else:
                 player["progression"]["money"] += 35
 
@@ -177,4 +185,4 @@ class GachaSystem:
             self.PlayerQuery.uid == player["uid"]
         )
 
-        return amplifier
+        return weapon
