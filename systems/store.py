@@ -42,7 +42,7 @@ class StoreSystem:
         weapon_list = "\n\n".join([
             f"*{weapon['name']}*"
             f"\n"
-            f"{self.weapon_system.format_weapon_stats(weapon["name"])}"
+            f"{self.weapon_system.format_amplifier_stats(weapon["name"])}"
             f"\n"
             f"💰 Цена: {weapon['cost']}"
             for weapon in weapons

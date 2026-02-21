@@ -187,9 +187,9 @@ class AmplifierSystem:
 
         self.bot.reply_to(message, f"Амплификатор {weapons['name']} успешно снят!")
 
-    def format_weapon_stats(self, weapon_name):
-        weapons = self.amplifiers.get(self.AmplifierQuery.name == weapon_name)
-        stats = weapons['stats']
+    def format_amplifier_stats(self, amplifier_name):
+        amp = self.amplifiers.get(self.AmplifierQuery.name == amplifier_name)
+        stats = amp['stats']
         atk = stats.get('ATK', 0)
 
         extra_stat = None
@@ -223,8 +223,8 @@ class AmplifierSystem:
             "ether": "✨"
         }
 
-        attr_name = weapons["attribute"]["name"]
-        bonus = weapons["attribute"]["bonus"]
+        attr_name = amp["attribute"]["name"]
+        bonus = amp["attribute"]["bonus"]
 
         emoji = attr_emojis.get(attr_name, "")
 
@@ -247,7 +247,7 @@ class AmplifierSystem:
             [
                 f"*{weapons}*"
                 + (" (экипирован)" if weapons == player_data["amplifiers"]["equipped"] else "")
-                + f"\n{self.format_weapon_stats(weapons)}\n"
+                + f"\n{self.format_amplifier_stats(weapons)}\n"
                 for weapons in owned_weapons
             ]
         )
